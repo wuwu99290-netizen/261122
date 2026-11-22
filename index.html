@@ -1,172 +1,224 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>一拳超人：最強之男｜Z 市防衛戰</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>一拳超人：最强之男 · Z市作战档案</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#17181c;color:#17181c;font:16px system-ui,"PingFang TC",sans-serif}
-main{width:min(820px,100%);margin:auto;min-height:100vh;background:#f6f1df;padding:clamp(14px,3vw,28px);border-inline:3px solid #101114}
-header,.row,.stats{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.brand,.num,small{font: bold 12px ui-monospace,monospace;letter-spacing:.08em}
-.brand{border-left:8px solid #e23c27;padding-left:8px}
-.num{background:#17181c;color:white;padding:5px 9px}
-h1{font-size:clamp(30px,6.8vw,58px);letter-spacing:-.065em;line-height:1.05;margin:16px 0 6px;font-weight:1000}
-.sub{font-weight:800;color:#744134;margin-bottom:14px}
-.scene{position:relative;border:3px solid;background:#efbf60;overflow:hidden}
-canvas{width:100%;height:auto;display:block;image-rendering:pixelated}
-#shout{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%) rotate(-7deg);color:#fff;font-size:clamp(21px,5vw,44px);font-weight:1000;white-space:nowrap;text-shadow:3px 3px #16171a,-2px -2px #16171a;pointer-events:none}
-.stats{align-items:stretch;margin-top:12px}
-.stat{width:50%;min-width:0}
-.stat .row{font-weight:900;font-size:clamp(14px,3vw,20px)}
-.stat span{font:700 13px monospace}
-.bar{margin-top:5px;border:2px solid;height:13px;background:#cec9b8}
-.fill{display:block;height:100%;background:#278779;transition:width .2s}
-.enemy{background:#d34832}
-#message{border-block:2px solid;padding:10px 0;margin:13px 0 10px;line-height:1.5;min-height:46px;font-weight:650}
-#energy{font-size:14px;font-weight:bold;color:#75341c}
-.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:9px 0}
-button{font:800 clamp(15px,3vw,20px) system-ui;color:#181819;background:#fff9e8;border:2px solid #19191b;box-shadow:2px 3px #19191b;min-height:57px;padding:7px 4px;cursor:pointer;touch-action:manipulation}
-button small{display:block;font:500 12px system-ui;margin-top:3px}
-button:active:enabled{transform:translate(2px,2px);box-shadow:none}
-button:disabled{opacity:.48;cursor:default}
-#blast{background:#ffd449}
-#punch,#next{width:100%;margin:4px 0;background:#bd3022;color:white}
-#punch:disabled{background:#e4d9c6;color:#4b3b2e;opacity:1;box-shadow:none;border-style:dashed}
-footer{margin-top:14px;font-size:12px;color:#655e50}
-[hidden]{display:none!important}
+*{box-sizing:border-box}body{margin:0;background:#171b22;color:#202329;font:15px system-ui,"PingFang SC",sans-serif}main{max-width:1040px;min-height:100vh;margin:auto;background:#f4efdf;padding:clamp(12px,3vw,30px)}header,.line,.buttons{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}header{border-bottom:4px solid;padding-bottom:12px}h1{margin:3px 0;font-size:clamp(27px,5vw,49px);letter-spacing:-.065em;line-height:1.1}h2,h3,p{margin:7px 0}.kicker,.mono{font:800 12px ui-monospace,monospace;letter-spacing:.1em}.kicker{border-left:7px solid #cc402a;padding-left:8px}.stamp{background:#252a32;color:white;padding:7px 10px;font-weight:800}.note,small{font-size:13px;color:#51555a}.panel{margin-top:12px;background:#fffcf1;border:2px solid #272a30;padding:12px}.arena{background:repeating-linear-gradient(135deg,#222831 0 13px,#252c36 13px 26px);color:#faf8ed;border:3px solid #171a20;padding:clamp(6px,1.5vw,16px);margin-top:12px}.teams{display:grid;grid-template-columns:1fr 1fr;gap:clamp(9px,3vw,30px)}.formation{display:grid;grid-template-columns:1fr 1fr;gap:5px}.unit{position:relative;text-align:left;min-width:0;overflow:hidden;background:#f5f1de;color:#20252c;padding:6px;border:2px solid #161920;box-shadow:none;min-height:66px}.red .unit{background:#f2dcd1}.unit .role{display:block;font:700 10px system-ui;color:#605f59}.unit strong{display:block;font-size:clamp(12px,2vw,17px);line-height:1.25}.unit .life{height:5px;background:#b9b6a9;margin:4px 0 2px}.life i{display:block;height:100%;background:#2a8a78}.red .life i{background:#bd4d37}.unit .hp{font:700 10px monospace}.unit.dead{opacity:.38}.unit.active{border-color:#f7bd24;box-shadow:inset 0 0 0 2px #f7bd24}.unit.target{outline:2px dashed #ffcc43;outline-offset:-3px}.unit.chosen{background:#ffd657}.marks{font-size:10px;font-weight:bold;color:#873a26;min-height:12px}.teamlabel{font-weight:900;margin-bottom:5px}.queue{margin:8px 0 0;color:#ece6d3;font-size:12px}.buttons{justify-content:flex-start}button,select{font:700 14px system-ui;color:#21242a;border:2px solid #252a31;background:#fff9eb;padding:9px 12px;min-height:42px;border-radius:2px;touch-action:manipulation}button{cursor:pointer}button:enabled:active{transform:translateY(1px)}button:disabled{opacity:.42;cursor:default}.primary{background:#ffd148}.danger{background:#b53625;color:white}.energy{font-weight:900;color:#8a4415}.action{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.log{max-height:160px;overflow:auto;font-size:13px;line-height:1.55;margin:6px 0 0;padding-left:22px}.log li:first-child{font-weight:800}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px}.grid button{text-align:left}.grid small{display:block;font-weight:500}.selected{background:#ffd148}details{margin-top:10px}summary{cursor:pointer;font-weight:bold;min-height:30px}footer{margin:13px 0;color:#68665e;font-size:12px}@media(max-width:520px){.arena{margin-inline:-5px}.unit{padding:4px;min-height:64px}.teams{gap:8px}.formation{gap:3px}.panel{padding:9px}button{padding:7px}.teamlabel{font-size:13px}}
 </style>
 </head>
-<body><main>
-<header><div class="brand">HERO ASSOCIATION</div><div class="num" id="stage"></div></header>
-<h1>一拳超人：最強之男</h1>
-<div class="sub" id="district"></div>
-<div class="scene"><canvas width="320" height="112" aria-label="像素戰場：傑諾斯迎戰怪人"></canvas><div id="shout" aria-hidden="true"></div></div>
-<div class="stats">
-<div class="stat"><div class="row"><b>傑諾斯</b><span id="heroHp"></span></div><div class="bar"><i class="fill" id="heroBar"></i></div></div>
-<div class="stat"><div class="row"><b id="enemyName"></b><span id="enemyHp"></span></div><div class="bar"><i class="fill enemy" id="enemyBar"></i></div></div>
-</div>
-<div id="message" role="status"></div>
-<div class="row"><b id="intent"></b><span id="energy"></span></div>
-<div class="actions" id="moves">
-<button id="hit">機關拳<small>攻擊 · 回 1 能量</small></button>
-<button id="guard">架盾蓄能<small>減傷 · 回 2 能量</small></button>
-<button id="blast">焚燒炮<small>重擊 · 耗 3 能量</small></button>
-</div>
-<button id="punch"></button><button id="next" hidden></button>
-<footer>同人小遊戲 · Z 市防衛戰</footer>
-</main>
+<body><main><header><div><div class="kicker">HERO ASSOCIATION / Z-CITY</div><h1>一拳超人：最强之男</h1><b>英雄协会 · Z 市作战档案</b></div><span class="stamp" id="badge"></span></header>
+<div id="app"></div>
+<footer>HTML 同人策略游戏 · 原创关卡与平衡数值 · 单人战役 / 同屏双人选禁对战</footer></main>
 <script>
 'use strict';
-const $=id=>document.getElementById(id);
-const foes=[
- {name:'螃蟹怪人',place:'第七商店街',hp:88,color:'#bf4638',moves:[['揮鉗',11],['雙鉗重砸',27],['側身衝撞',12]]},
- {name:'深海王',place:'暴雨避難所',hp:126,color:'#348765',moves:[['酸液噴吐',15],['暴雨連擊',32],['魚尾橫掃',18]]},
- {name:'波羅斯',place:'外星母艦',hp:182,color:'#7154ad',moves:[['流星突擊',21],['崩星咆哮炮',43],['能量脈衝',19]]}
+const app=document.querySelector('#app'),badge=document.querySelector('#badge');
+/* 名称、系别、速度、生命、攻击、绝技、范围、倍率、效果、被动 */
+const roster=[
+ ['童帝','科技',123,108,20,'书包火炮','列',1.05,'崩坏','洞察'],
+ ['杰诺斯','科技',108,115,25,'螺旋焚烧炮','列',1.35,'灼烧','追火'],
+ ['背心尊者','格斗',82,170,23,'背心擒抱','单',1.65,'坚韧','铁壁'],
+ ['僵尸男','武器',95,134,22,'不死追击','单',1.60,'受伤','复活'],
+ ['战栗的龙卷','超能',116,98,26,'陨石风暴','全',.91,'无','增幅'],
+ ['甜心假面','格斗',111,111,25,'华丽连击','后',1.85,'受伤','收割'],
+ ['深海王','格斗',101,150,25,'深海酸液','列',1.15,'酸蚀','再生'],
+ ['阿修罗独角仙','格斗',78,190,22,'独角冲锋','单',1.70,'坚韧','反伤'],
+ ['疫苗人','超能',104,125,25,'疫苗光球','全',.83,'灼烧','追火'],
+ ['音速索尼克','武器',130,95,24,'十影葬','后',1.65,'崩坏','收割'],
+ ['金属骑士','科技',90,140,24,'导弹饱和打击','全',.88,'无','铁壁'],
+ ['地狱的吹雪','超能',113,112,21,'地狱岚','列',1.10,'坚韧','屏障'],
+ ['原子武士','武器',110,116,27,'原子斩','列',1.55,'无','追伤'],
+ ['波罗斯','超能',106,160,28,'崩星咆哮炮','全',.96,'无','增幅'],
+ ['兽王','格斗',98,141,26,'狮子斩','列',1.35,'受伤','追伤'],
+ ['驱动骑士','科技',103,127,24,'战术变形','后',1.50,'灼烧','洞察']
 ];
-let level,hp,foeHp,charge,gauge,turn,status,flashTimer;
-const c=document.querySelector('canvas'),g=c.getContext('2d');
-const ink='#222432';
-function box(x,y,w,h,color){g.fillStyle=color;g.fillRect(x,y,w,h)}
-function poly(points,color){g.fillStyle=color;g.beginPath();points.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fill()}
-function draw(effect=''){
- const sky=['#efbb79','#6899a8','#716696'][level];
- box(0,0,320,112,sky);box(24,11,27,27,'#ffe19c');
- for(let i=0;i<23;i++){
-  let x=i*15-5,h=12+(i*31%45);
-  box(x,83-h,13,h,['#ae8175','#537887','#56546e'][level]);
-  for(let y=85-h;y<80;y+=7)box(x+3,y,3,3,sky);
+const passive={洞察:'普攻施加崩坏',追火:'攻击灼烧目标增伤35%',铁壁:'受到直接伤害降低18%',复活:'每场首次倒下时恢复40%生命',增幅:'绝技伤害提高18%',收割:'攻击半血以下目标增伤35%',再生:'行动前恢复8点生命',反伤:'受到直接攻击时反弹实际生命伤害的25%',屏障:'行动前给生命比例最低的队友8点护盾',追伤:'攻击受伤目标增伤35%'};
+const cores={
+ 0:['童帝 · 战术指挥','科技＋武器','首次施加崩坏回2火，每轮一次。'],
+ 3:['僵尸男 · 不死战线','武器＋格斗＋超能','施加受伤或获得坚韧回1火，每轮两次。'],
+ 6:['深海王 · 深海威压','格斗＋超能','本队受到直接生命伤害回1火，每轮两次。']
+};
+const chapters=[
+ ['商店街封锁线','兽王率先锋占住十字路口。索尼克在后排等着切入。',[14,7,6,9,11,15],.85],
+ ['避难所攻防','雨水漫过避难所台阶。深海王的酸蚀会随每一次行动结算。',[7,6,2,8,9,10],1],
+ ['决战外星母舰','破坏母舰指挥部。波罗斯藏在中列后方，前面是阿修罗独角仙。',[14,7,6,10,13,8],1.17]
+];
+const defaults=[2,3,5,0,1,4], key='opm-zcity-tactics-3';
+let save={ids:defaults.slice(),core:0,unlocked:0,cleared:false},persistent=true;
+try{let v=JSON.parse(localStorage.getItem(key));if(v&&Array.isArray(v.ids)&&v.ids.length===6&&new Set(v.ids).size===6&&v.ids.every(id=>Number.isInteger(id)&&roster[id])&&v.ids.includes(v.core)&&cores[v.core]&&Number.isInteger(v.unlocked)&&v.unlocked>=0&&v.unlocked<3)save=v}catch{}
+function persist(){try{localStorage.setItem(key,JSON.stringify(save))}catch{persistent=false}}
+let mode='pve',chapter=save.unlocked,screen='battle',teams,energy,coreIds,coreUses,round,queue,actor,aid,sel,logs,ended,timer,editSlot=0,editIds,editCore,draft,skill='basic',auto=false;
+const name=id=>roster[id][0], alive=side=>teams[side].filter(u=>u.hp>0);
+function enabledCore(ids,id){return ids.includes(id)&&cores[id]&&cores[id][1].split('＋').every(t=>ids.some(n=>roster[n][1]===t))}
+function make(id,side,slot,scale){const r=roster[id],max=Math.round(r[3]*scale);return{id,side,slot,max,hp:max,atk:Math.round(r[4]*scale),spd:r[2],shield:0,revived:false,status:{}}}
+function addLog(s){logs.unshift(s);if(logs.length>70)logs.pop()}
+function start(idsA,idsB,a,b){
+ clearTimeout(timer);screen='battle';teams=[idsA.map((x,i)=>make(x,0,i,1)),idsB.map((x,i)=>make(x,1,i,mode==='pve'?chapters[chapter][3]:1))];
+ coreIds=[a,b];energy=[2,2];round=0;aid=0;logs=[];ended=null;auto=false;queue=[];advance()
+}
+function campaign(){mode='pve';start(save.ids,chapters[chapter][2],save.core,6)}
+function recover(side,event){
+ let id=coreIds[side];if(!enabledCore(teams[side].map(u=>u.id),id))return;
+ let ok=id===0&&event==='崩坏'||id===3&&['受伤','坚韧'].includes(event)||id===6&&event==='挨打';
+ if(!ok||coreUses[side]>=(id===0?1:2)||energy[side]>=8)return;
+ coreUses[side]++;let before=energy[side];energy[side]=Math.min(8,before+(id===0?2:1));addLog(name(id)+'核心发动，队伍回复 '+(energy[side]-before)+' 火。')
+}
+function loss(u,n){
+ const block=Math.min(u.shield,n);u.shield-=block;const lost=Math.min(u.hp,n-block);u.hp-=lost;
+ if(!u.hp){if(roster[u.id][9]==='复活'&&!u.revived){u.revived=true;u.hp=Math.ceil(u.max*.4);u.status={};addLog(name(u.id)+'重新站了起来！')}else addLog(name(u.id)+'退场。')}
+ return lost
+}
+function finish(){
+ if(alive(0).length&&alive(1).length)return false;
+ ended=alive(0).length?0:alive(1).length?1:2;
+ if(mode==='pve'&&ended===0){save.unlocked=Math.max(save.unlocked,Math.min(2,chapter+1));if(chapter===2)save.cleared=true;persist()}
+ actor=null;render();return true
+}
+function lowest(side){return alive(side).sort((a,b)=>a.hp/a.max-b.hp/b.max)[0]}
+function advance(){
+ clearTimeout(timer);
+ for(;;){
+ if(finish())return;
+ if(!queue.length){round++;coreUses=[0,0];energy=energy.map(n=>Math.min(8,n+2));queue=teams.flat().filter(u=>u.hp).sort((a,b)=>b.spd-a.spd||a.side-b.side||a.slot-b.slot);addLog('第 '+round+' 轮开始，双方各回 2 火。')}
+ actor=queue.shift();if(!actor.hp)continue;
+ if(actor.status['灼烧']){let n=loss(actor,10);addLog(name(actor.id)+'行动前灼烧 −'+n);if(!--actor.status['灼烧'])delete actor.status['灼烧'];if(!actor.hp)continue}
+ if(roster[actor.id][9]==='再生')actor.hp=Math.min(actor.max,actor.hp+8);
+ if(roster[actor.id][9]==='屏障'){lowest(actor.side).shield+=8;recover(actor.side,'坚韧')}
+ skill='basic';sel=null;render();
+ if(mode==='pve'&&(actor.side===1||auto))timer=setTimeout(ai,auto?280:620);
+ return
+ }}
+function targets(type){
+ const side=1-actor.side,all=alive(side);
+ if(type==='援助'||type==='全')return all;
+ if(type==='后'){const back=all.filter(u=>u.slot>=3);return back.length?back:all}
+ return all.filter(u=>u.slot<3||!teams[side][u.slot-3].hp)
+}
+function type(){return skill==='aid'?'援助':skill==='basic'?'单':roster[actor.id][6]}
+function manual(){return actor&&(mode==='pvp'||actor.side===0&&!auto)}
+function applyStatus(u,k,side){u.status[k]=k==='酸蚀'?12:k==='灼烧'?2:3;recover(side,k)}
+function act(target){
+ if(!actor||ended!==null||!targets(type()).includes(target))return;
+ const a=actor,r=roster[a.id],side=a.side,kind=type();
+ if(skill==='aid'){
+ if(mode!=='pve'||side||aid<8)return;
+ aid=0;target.revived=true;target.shield=0;loss(target,target.hp);addLog('埼玉赶到，一拳击破'+name(target.id)+'！');
+ if(!finish()){skill='basic';sel=null;render()}return
  }
- if(level===1)for(let i=0;i<56;i++)box(i*37%320,i*23%87,1,4,'#a5c1c6');
- box(0,83,320,29,'#55525b');box(0,83,320,3,'#272839');
- for(let i=0;i<10;i++)box(i*35,101,17,2,'#b6a493');
- const attacking=effect==='hit'||effect==='blast';
- g.save();g.translate(attacking?80:59,40);
- box(-10,48,34,3,'#373540');
- box(0,32,7,16,ink);box(13,31,7,17,ink);box(-4,45,12,4,ink);box(12,45,13,4,ink);
- poly([[-3,13],[17,12],[22,20],[16,34],[0,34],[-5,24]],ink);
- box(0,16,16,5,'#404755');box(2,2,14,13,'#edb991');box(13,7,5,2,ink);box(14,7,2,1,'#ffe171');
- poly([[-2,10],[-4,1],[0,2],[-2,-5],[5,-2],[6,-8],[10,-3],[16,-6],[15,-2],[21,-3],[16,4],[9,4],[5,9],[4,5]],'#ffda69');
- box(-8,16,8,12,'#aeb4ba');box(-9,24,8,8,ink);box(-8,25,6,3,'#ffbb4c');
- box(16,15,9,9,'#c8cbca');box(20,20,attacking?19:10,7,ink);box(22,21,attacking?16:7,3,'#ffb638');
- if(effect==='guard'){box(30,6,2,32,'#bafaea');box(33,13,2,17,'#bafaea')}
- g.restore();
- const f=foes[level],x=239,y=40;
- g.save();g.translate(x,y);
- box(-22,48,49,3,'#373540');
- box(-13,32,9,16,ink);box(7,31,10,17,ink);
- poly([[-16,6],[-5,1],[12,1],[22,13],[17,34],[0,38],[-18,32],[-23,17]],ink);
- poly([[-14,8],[10,4],[18,13],[13,30],[0,34],[-14,29],[-18,16]],f.color);
- if(level===0){
- for(const s of [-1,1]){box(s*8-1,-6,3,13,ink);box(s*8-3,-7,7,5,'#fff6d6');box(s*8,-6,2,3,ink);box(s*22-6,15,12,6,f.color);box(s*29-5,5,12,14,f.color);box(s*29-5,0,4,10,f.color);box(s*29+3,-1,4,9,f.color)}
- box(-9,14,17,3,ink);
- }else if(level===1){
- poly([[-17,3],[-17,-11],[-10,-6],[-4,-15],[2,-7],[10,-14],[12,2]],'#ffe16e');
- box(-13,2,24,12,f.color);box(-12,5,6,2,'#ffed95');box(-4,11,12,2,ink);
- poly([[-15,13],[-32,0],[-25,28],[-17,24]],'#6eba81');
- box(15,12,12,17,f.color);box(-27,21,13,12,f.color)
+ const ult=skill==='ult';if(ult&&energy[side]<2)return;
+ if(ult)energy[side]-=2;
+ const list=kind==='全'?alive(1-side):kind==='列'?alive(1-side).filter(u=>u.slot%3===target.slot%3):[target];
+ let sum=0,reflect=0;
+ for(const u of list){
+ const p=r[9],def=roster[u.id][9],s=u.status;
+ let n=a.atk*(ult?r[7]:1)*(s['崩坏']?1.3:1);
+ if(p==='追火'&&s['灼烧']||p==='追伤'&&s['受伤']||p==='收割'&&u.hp<u.max/2)n*=1.35;
+ if(p==='增幅'&&ult)n*=1.18;if(def==='铁壁')n*=.82;
+ let dealt=loss(u,Math.round(n)+(s['受伤']?8:0));sum+=dealt;
+ if(dealt)recover(u.side,'挨打');if(def==='反伤')reflect+=Math.ceil(dealt*.25);
+ for(const k of ['崩坏','受伤'])if(s[k]&&!--s[k])delete s[k];
+ const k=ult?r[8]:p==='洞察'?'崩坏':'无';
+ if(u.hp&&!['无','坚韧'].includes(k))applyStatus(u,k,side)
+ }
+ if(ult&&r[8]==='坚韧'){for(const u of alive(side))u.shield=Math.min(55,u.shield+14);recover(side,'坚韧')}
+ if(reflect){loss(a,reflect);addLog(name(a.id)+'受到 '+reflect+' 点反伤。')}
+ addLog(name(a.id)+'使用'+(ult?r[5]:'普攻')+'，对'+(list.length===1?name(target.id):list.length+' 个目标')+'造成 '+sum+' 点生命伤害。');
+ if(mode==='pve'&&!side)aid=Math.min(8,aid+1);
+ for(const u of teams.flat())if(u.hp&&u.status['酸蚀']){let n=loss(u,3);if(n)addLog(name(u.id)+'酸蚀 −'+n);if(u.status['酸蚀']&&!--u.status['酸蚀'])delete u.status['酸蚀']}
+ advance()
+}
+function ai(){
+ if(screen!=='battle'||!actor||ended!==null)return;
+ if(!actor.side&&aid===8){skill='aid';act(alive(1).sort((a,b)=>b.hp-a.hp)[0]);if(ended!==null)return}
+ skill=energy[actor.side]>=2?'ult':'basic';
+ let options=targets(type()).slice();
+ options.sort((a,b)=>type()==='列'?(alive(a.side).filter(x=>x.slot%3===b.slot%3).length-alive(a.side).filter(x=>x.slot%3===a.slot%3).length)||a.hp-b.hp:a.hp-b.hp);
+ act(options[0])
+}
+function btn(label,cmd,cl='',disabled=false){return `<button class="${cl}" data-c="${cmd}" ${disabled?'disabled':''}>${label}</button>`}
+function card(u){
+ let legal=manual()&&ended===null&&targets(type()).includes(u);
+ let st=Object.entries(u.status).filter(e=>e[1]).map(([k,v])=>k+v).join(' ');
+ return `<button class="unit ${!u.hp?'dead':''} ${actor===u?'active':''} ${legal?'target':''} ${sel===u?'chosen':''}" data-c="unit-${u.side}-${u.slot}" aria-label="${name(u.id)}，生命${u.hp}"><span class="role">${u.slot<3?'前':'后'}${u.slot%3+1} · ${roster[u.id][1]} · 速${u.spd}</span><strong>${name(u.id)}</strong><div class="life"><i style="width:${100*u.hp/u.max}%"></i></div><span class="hp">${u.hp}/${u.max}</span><div class="marks">${u.hp?(u.shield?'盾'+u.shield+' ':'')+st:'退场'}</div></button>`
+}
+function team(side){
+ const order=side?[0,3,1,4,2,5]:[3,0,4,1,5,2];
+ let title=mode==='pve'?(side?'敌方':'我方'):(side?'乙队':'甲队');return `<div class="${side?'red':''}"><div class="teamlabel">${title}　${energy[side]} 火</div><div class="formation">${order.map(i=>card(teams[side][i])).join('')}</div></div>`
+}
+function dossier(id){
+ const r=roster[id];return `<b>${r[0]} · ${r[1]}</b><p>速度 ${r[2]}　基础生命 ${r[3]}　攻击 ${r[4]}</p><p>${r[5]} · ${r[6]}体型目标 · ${Math.round(r[7]*100)}% 攻击${r[8]==='无'?'':' · '+r[8]}</p><p>被动「${r[9]}」${passive[r[9]]}。</p>`
+}
+function rules(){return `<details class="panel"><summary>战斗手册</summary><p>每轮按速度从高到低行动，同速甲方先手。每队开场 2 火，每轮开始加 2 火，上限 8。普攻免费，绝技耗 2 火。</p><p>普攻可选任一前排，也可打前排已倒下的同列后排。「列」贯穿同列两人，「后」优先选择后排，「全」覆盖全队。</p><p>崩坏让接下来三次直接攻击增伤 30%；受伤让接下来三次直接攻击各追加 8 点伤害。灼烧在目标接下来两次行动前各造成 10 点伤害。酸蚀在任意角色行动后造成 3 点伤害，持续 12 次行动。重复施加刷新次数。</p><p>坚韧为全队各加 14 点护盾，最多叠至 55。护盾先于生命扣除。战役每完成 8 次我方行动可呼叫埼玉击破一个目标，保留当前角色行动。</p><p>核心按开战阵容激活，整场生效。${Object.values(cores).map(c=>c[0]+'（'+c[1]+'）：'+c[2]).join(' ')}</p></details>`}
+let inspect='';
+function render(){
+ if(screen==='setup'){setupView();return}if(screen==='draft'){draftView();return}
+ badge.textContent=(mode==='pve'?'档案 0'+(chapter+1)+'/03':'双人对战')+'　ROUND '+round;
+ const title=mode==='pve'?chapters[chapter][0]:'协会模拟对抗';
+ const next=queue.filter(u=>u.hp).map(u=>name(u.id)).join(' › ');
+ const r=actor&&roster[actor.id];
+ let controls='';
+ if(ended!==null){
+ const win=ended===2?'双方同时退场':mode==='pvp'?(ended?'乙队获胜':'甲队获胜'):ended?'防线失守':chapter===2?'母舰坠落 · 战役通关':'街区已解放';
+ controls=`<h2>${win}</h2><div class="action">${mode==='pve'&&ended===0&&chapter<2?btn('进入下一章','next','primary'):''}${btn(mode==='pve'?'重打本章':'再来一局',mode==='pve'?'retry':'draft')}${btn('战役整备','setup')}</div>`;
  }else{
- poly([[-13,7],[-24,-12],[-11,-8],[-17,-24],[-3,-14],[1,-29],[7,-13],[18,-23],[15,-8],[26,-12],[14,5]],'#f2a3c1');
- box(-10,-5,19,17,f.color);box(-10,0,15,5,'#fbf0ca');box(-5,0,4,5,'#c83154');
- box(-26,11,11,19,f.color);box(17,10,10,20,f.color);
- poly([[-11,16],[2,22],[14,14],[4,25],[1,30]],'#91e5df')
+ const can=manual();let hint=skill==='aid'?'埼玉将击破所选目标':skill==='ult'?r[5]+' · '+({列:'贯穿一列',单:'攻击单体',全:'覆盖全队',后:'突袭后排'}[type()])+(r[8]==='无'?'':' · '+r[8]):'普通攻击 · 免费';
+ controls=`<div class="line"><h2>${mode==='pvp'?(actor.side?'乙方':'甲方'):actor.side?'敌方':'我方'}行动 · ${r[0]}</h2><b class="energy">共享能量 ${energy[actor.side]} / 8</b></div>
+ ${can?`<div class="action">${btn('普攻','basic',skill==='basic'?'selected':'')}${btn(r[5]+' · 2火','ult',skill==='ult'?'selected':'',energy[actor.side]<2)}${mode==='pve'?btn('埼玉援助 '+aid+'/8','aid',skill==='aid'?'selected':'',aid<8):''}</div><p>${hint}。${sel?'已锁定 '+name(sel.id)+'。':'点选战场上带虚线框的敌人。'}</p>${btn(sel?'发动 → '+name(sel.id):'等待选择目标','fire','danger',!sel)}`:`<p>${auto?'自动作战中':'敌方正在行动'}…</p>`}
+ <p class="note">${r[9]} · ${passive[r[9]]}</p>`;
  }
- g.restore();
- if(effect==='blast')poly([[110,61],[224,45],[210,54],[246,55],[215,65],[228,70]],'#fff4a0');
- if(effect==='hit')poly([[118,61],[202,54],[189,59],[215,58],[197,65]],'#fff5cd');
- if(effect==='punch'){
- poly([[0,46],[183,52],[171,44],[257,55],[226,61],[250,69],[0,65]],'#fff3ba');
- box(173,54,33,8,'#edbd3d');box(201,49,23,15,'#b92e27');box(205,46,17,5,'#f45442');
- }
+ app.innerHTML=`<div class="line"><div><h2>${title}</h2><span class="note">${mode==='pve'?chapters[chapter][1]:'双方共用此屏幕，按行动条轮流操作。'}</span></div></div>
+ <section class="arena"><div class="teams">${team(0)}${team(1)}</div><div class="queue">行动条　${actor?'▶ '+name(actor.id)+'　':''}${next||'本轮末尾'}</div></section>
+ <section class="panel" aria-live="polite">${controls}</section>
+ ${inspect?`<section class="panel">${inspect}</section>`:''}
+ <section class="panel"><div class="line"><b>战况记录</b><small>最新在前</small></div><ol class="log">${logs.slice(0,18).map(s=>'<li>'+s+'</li>').join('')}</ol></section>
+ <div class="action">${mode==='pve'&&ended===null?btn(auto?'关闭自动':'自动战斗','auto'):''}${btn('阵容与章节','setup')}${btn('双人选禁','draft')}</div>${rules()}`
 }
-function move(){return foes[level].moves[turn%3]}
-function render(effect){
- const f=foes[level];draw(effect);
- $('stage').textContent='FILE 0'+(level+1)+' / 03';
- $('district').textContent='Z 市防衛戰　／　'+f.place;
- $('enemyName').textContent=f.name;
- for(const [id,n,max] of [['hero',hp,100],['enemy',foeHp,f.hp]]){
- $(id+'Hp').textContent=n+'/'+max;$(id+'Bar').style.width=(100*n/max)+'%';
- }
- const active=status==='fight';
- $('moves').hidden=!active;$('punch').hidden=!active;$('next').hidden=active;
- $('intent').textContent=active?'敵方預告 · '+move()[0]+'（'+move()[1]+'）':status==='lost'?'防線失守':level===2?'Z 市防衛成功':'街區已清空';
- $('energy').textContent='能量 '+charge+' / 5';
- $('blast').disabled=charge<3;
- $('punch').disabled=gauge<4;
- $('punch').textContent=gauge===4?'呼叫埼玉　✦　普通一拳':'埼玉趕路中　'+gauge+' / 4';
- $('next').textContent=status==='lost'?'重新挑戰本關':level===2?'再次出動':'前往'+foes[Math.min(2,level+1)].place;
+function setupView(){
+ badge.textContent='HERO ROSTER';let opts=chapters.map((c,i)=>`<option value="${i}" ${i===chapter?'selected':''} ${i>save.unlocked?'disabled':''}>${i+1}. ${c[0]}${i>save.unlocked?' · 未解锁':''}</option>`).join('');
+ app.innerHTML=`<section class="panel"><div class="line"><h2>战役整备</h2><select id="chapter" aria-label="选择章节">${opts}</select></div><p>${chapters[chapter][1]}</p><p>① 点选站位　② 点选角色替换。选择已上阵角色可交换位置。</p><div class="grid">${editIds.map((id,i)=>btn((i<3?'前':'后')+'排 '+(i%3+1)+'　'+name(id),'slot-'+i,editSlot===i?'selected':'')).join('')}</div></section>
+ <section class="panel"><h3>协会名册</h3><div class="grid">${roster.map((r,i)=>btn(r[0]+`<small>${r[1]} · 速 ${r[2]} · ${r[5]}</small>`,'pick-'+i,editIds[editSlot]===i?'selected':'')).join('')}</div></section>
+ <section class="panel">${dossier(editIds[editSlot])}<h3>队伍核心</h3><div class="buttons">${Object.keys(cores).map(Number).map(id=>btn(name(id),'core-'+id,editCore===id?'selected':'',!editIds.includes(id))).join('')}</div><p>${cores[editCore]?cores[editCore].join(' · '):'当前阵容没有核心。'} ${enabledCore(editIds,editCore)?'【已激活】':'【未激活】'}</p>${btn('保存阵容并出击','launch','primary')}</section>${rules()}`
 }
-function start(i){
- clearTimeout(flashTimer);$('shout').textContent='';
- level=i;hp=100;foeHp=foes[i].hp;charge=2;gauge=0;turn=0;status='fight';
- $('message').textContent=['便利店的鐵閘被剪成兩半。傑諾斯放下特賣傳單，抬起右臂。','最後一班避難巴士還沒開走。雨幕裡，一頂王冠緩緩升起。','母艦的外殼裂開。波羅斯從王座上站起來，示意傑諾斯先出手。'][i];
- render();
-}
-function act(id){
- if(status!=='fight'||(id==='blast'&&charge<3)||(id==='punch'&&gauge<4))return;
- const [name,power]=move();
- const damage={hit:16,guard:0,blast:38,punch:foeHp}[id];
- charge=Math.min(5,charge+({hit:1,guard:2,blast:-3,punch:0}[id]));
- gauge=Math.min(4,gauge+1);foeHp=Math.max(0,foeHp-damage);
- let report='';
- if(!foeHp){
- status='won';
- report=id==='punch'?'埼玉提著一袋特價雞蛋趕到。一拳落下，紙袋裡的蛋一顆也沒破。':'傑諾斯擊破了'+foes[level].name+'。機械核心開始冷卻。';
+function newDraft(){clearTimeout(timer);screen='draft';draft={step:0,bans:[],ids:[[],[]],core:[null,null],slot:[0,0],phase:'pick'};draftView()}
+const order=[0,1,0,1,1,0,0,1,1,0,0,1,1,0];
+function draftView(){
+ badge.textContent='LOCAL VERSUS';let d=draft,side=order[d.step]||0;
+ if(d.phase==='pick'){
+ const taken=[...d.bans,...d.ids.flat()];
+ app.innerHTML=`<section class="panel"><h2>${side?'乙方':'甲方'}${d.step<2?'禁用':'选取'}角色</h2><p>双方各禁用一人，再交替选满六人。每位角色只可由一队选用。</p><p>禁用：${d.bans.map(name).join('、')||'待选'}</p><p>甲队：${d.ids[0].map(name).join('、')||'待选'}</p><p>乙队：${d.ids[1].map(name).join('、')||'待选'}</p><div class="grid">${roster.map((r,i)=>btn(r[0]+`<small>${r[1]} · 速 ${r[2]} · ${r[5]}</small>`,'draftpick-'+i,'',taken.includes(i))).join('')}</div></section>`;
  }else{
- const taken=id==='guard'?Math.ceil(power/4):power;
- hp=Math.max(0,hp-taken);turn++;
- report=(id==='guard'?'展開護盾，回充兩格能量。':'命中！造成 '+damage+' 傷害。')+foes[level].name+'使出'+name+'，你受到 '+taken+' 傷害。';
- if(!hp){status='lost';report+=' 核心過熱，緊急撤退。'}
+ app.innerHTML=`<section class="panel"><h2>开战整备</h2><p>每队先点一个位置，再点另一个位置交换。选好核心后开始对决。</p>${[0,1].map(s=>`<h3>${s?'乙':'甲'}方阵容</h3><div class="grid">${d.ids[s].map((id,i)=>btn((i<3?'前':'后')+(i%3+1)+'　'+name(id),'swap-'+s+'-'+i,d.slot[s]===i?'selected':'')).join('')}</div><div class="action">${d.ids[s].filter(id=>cores[id]).map(id=>btn(name(id)+'核心','dc-'+s+'-'+id,d.core[s]===id?'selected':'')).join('')||'无可用核心'}</div><p>${enabledCore(d.ids[s],d.core[s])?'核心已激活':'核心未激活'}</p>`).join('')}${btn('开始双人对决','duel','primary')}</section>`
  }
- $('message').textContent=report;
- clearTimeout(flashTimer);
- $('shout').textContent={hit:'連打！',guard:'防禦！',blast:'焚燒！',punch:'普通一拳。'}[id];
- render(id);
- flashTimer=setTimeout(()=>{$('shout').textContent='';draw()},580);
+ app.innerHTML+=`<div class="action">${btn('返回战役整备','setup')}</div>${rules()}`
 }
-for(const id of ['hit','guard','blast','punch'])$(id).onclick=()=>act(id);
-$('next').onclick=()=>start(status==='lost'?level:(level+1)%3);
-start(0);
+function setup(){clearTimeout(timer);screen='setup';editIds=save.ids.slice();editCore=save.core;editSlot=0;inspect='';setupView()}
+app.onchange=e=>{if(e.target.id==='chapter'){chapter=+e.target.value;setupView()}};
+app.onclick=e=>{
+ const b=e.target.closest('[data-c]');if(!b||b.disabled)return;
+ const [cmd,x,y]=b.dataset.c.split('-'),i=Number(x),j=Number(y);
+ if(cmd==='setup'){setup();return}if(cmd==='draft'){newDraft();return}
+ if(screen==='setup'){
+ if(cmd==='slot')editSlot=i;
+ if(cmd==='pick'){let old=editIds.indexOf(i);if(old>=0)editIds[old]=editIds[editSlot];editIds[editSlot]=i;if(!editIds.includes(editCore))editCore=editIds.find(id=>cores[id])??null}
+ if(cmd==='core')editCore=i;
+ if(cmd==='launch'){save.ids=editIds.slice();save.core=editCore;persist();inspect='';campaign();return}
+ setupView();return
+ }
+ if(screen==='draft'){
+ if(cmd==='draftpick'){let d=draft;if(d.step<2)d.bans.push(i);else d.ids[order[d.step]].push(i);if(++d.step===order.length){d.phase='setup';d.slot=[null,null];d.core=d.ids.map(ids=>ids.find(id=>enabledCore(ids,id))??null)}}
+ if(cmd==='swap'){let prev=draft.slot[i];if(prev===null)draft.slot[i]=j;else{let ids=draft.ids[i];[ids[j],ids[prev]]=[ids[prev],ids[j]];draft.slot[i]=null}}
+ if(cmd==='dc')draft.core[i]=j;
+ if(cmd==='duel'){mode='pvp';inspect='';start(...draft.ids,...draft.core);return}
+ draftView();return
+ }
+ if(cmd==='next'){chapter++;inspect='';campaign();return}
+ if(cmd==='retry'){inspect='';campaign();return}
+ if(cmd==='auto'){auto=!auto;sel=null;inspect='';clearTimeout(timer);render();if(actor&&(auto||actor.side===1))timer=setTimeout(ai,300);return}
+ if(cmd==='unit'){const u=teams[i][j];if(manual()&&targets(type()).includes(u)){sel=u;inspect=''}else inspect=dossier(u.id);render();return}
+ if(!manual())return;
+ if(['basic','ult','aid'].includes(cmd)){skill=cmd;if(!targets(type()).includes(sel))sel=null;inspect='';render()}
+ if(cmd==='fire'&&sel){inspect='';act(sel)}
+};
+campaign();
 </script></body></html>
