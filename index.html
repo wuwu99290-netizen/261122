@@ -1,33 +1,36 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>文明時代 II：網頁霸業版 (Age of History II)</title>
+<title>文明时代 II：真实世界版 (Age of History II)</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
 <style>
   :root {
-    --bg-deep: #0b131e;
-    --bg-panel: rgba(16, 23, 34, 0.94);
-    --bg-panel-solid: #101722;
-    --bg-card: rgba(26, 36, 52, 0.9);
-    --bg-hover: rgba(42, 56, 78, 0.95);
-    --border-gold: rgba(212, 168, 83, 0.45);
+    --bg-ocean: #0b1726;
+    --bg-panel: rgba(13, 19, 30, 0.94);
+    --bg-panel-solid: #0f1623;
+    --bg-card: rgba(23, 33, 49, 0.92);
+    --bg-hover: rgba(36, 50, 72, 0.96);
+    --border-gold: rgba(212, 170, 86, 0.48);
     --border-subtle: rgba(148, 163, 184, 0.18);
-    --gold: #e5b95c;
-    --gold-dim: #b58d3d;
+    --gold: #e6bc65;
+    --gold-dim: #b48a38;
     --text-main: #edf2f7;
     --text-muted: #94a3b8;
     --green: #4ade80;
     --red: #f87171;
     --blue: #60a5fa;
     --amber: #fbbf24;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.58);
   }
 
   * {
     box-sizing: border-box;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   html, body {
@@ -36,9 +39,9 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: var(--bg-deep);
+    background: var(--bg-ocean);
     color: var(--text-main);
-    font-family: "Inter", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", system-ui, -apple-system, sans-serif;
+    font-family: "Inter", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, -apple-system, sans-serif;
     font-size: 13px;
   }
 
@@ -56,113 +59,91 @@
     cursor: grab;
     touch-action: none;
   }
-  #map-canvas:active {
-    cursor: grabbing;
-  }
-  #map-canvas.crosshair {
-    cursor: crosshair;
-  }
+  #map-canvas:active { cursor: grabbing; }
+  #map-canvas.crosshair { cursor: crosshair; }
 
-  /* ===== Title / Scenario Overlay ===== */
+  /* ===== Loading Overlay ===== */
+  #loading-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: radial-gradient(circle at 50% 40%, #152438 0%, #09111c 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  #loading-screen.hidden { display: none; }
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(230, 188, 101, 0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== Title / Scenario Screen ===== */
   #title-screen {
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: radial-gradient(circle at 50% 25%, rgba(28, 43, 66, 0.96), rgba(9, 14, 22, 0.99));
+    background: radial-gradient(circle at 50% 25%, rgba(20, 34, 54, 0.88), rgba(8, 13, 21, 0.96));
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 16px;
     overflow-y: auto;
   }
-  #title-screen.hidden {
-    display: none;
-  }
+  #title-screen.hidden { display: none; }
 
   .title-box {
     width: 100%;
-    max-width: 820px;
+    max-width: 860px;
     background: var(--bg-panel);
     border: 1px solid var(--border-gold);
     border-radius: 14px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75);
-    padding: 24px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.78);
+    padding: 22px 24px;
     max-height: 92vh;
     overflow-y: auto;
   }
-
   .title-header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
     border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: 16px;
+    padding-bottom: 14px;
   }
   .title-badge {
     display: inline-block;
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--gold);
-    background: rgba(229, 185, 92, 0.12);
+    background: rgba(230, 188, 101, 0.12);
     border: 1px solid var(--border-gold);
     padding: 3px 10px;
     border-radius: 999px;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
   }
   .title-header h1 {
     margin: 0;
     font-size: clamp(22px, 4vw, 34px);
     font-weight: 800;
     letter-spacing: 2px;
-    background: linear-gradient(180deg, #fff4d2 0%, #e5b95c 65%, #a87b28 100%);
+    background: linear-gradient(180deg, #fff5d6 0%, #e6bc65 65%, #a87b28 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
   .title-header p {
     margin: 6px 0 0;
     color: var(--text-muted);
-    font-size: 13px;
-  }
-
-  .scenario-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-  .scenario-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    padding: 12px 14px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-align: left;
-  }
-  .scenario-card:hover {
-    border-color: var(--gold-dim);
-    background: var(--bg-hover);
-  }
-  .scenario-card.active {
-    border-color: var(--gold);
-    background: rgba(229, 185, 92, 0.14);
-    box-shadow: 0 0 0 1px var(--gold) inset;
-  }
-  .scenario-card .sc-year {
-    font-size: 11px;
-    color: var(--gold);
-    font-weight: 700;
-  }
-  .scenario-card .sc-name {
-    font-size: 15px;
-    font-weight: 700;
-    margin: 2px 0 4px;
-    color: var(--text-main);
-  }
-  .scenario-card .sc-desc {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.4;
+    font-size: 12.5px;
   }
 
   .section-label {
@@ -170,15 +151,38 @@
     font-weight: 700;
     letter-spacing: 1px;
     color: var(--gold);
-    text-transform: uppercase;
     margin: 0 0 8px;
   }
 
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .scenario-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 11px 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .scenario-card:hover { border-color: var(--gold-dim); background: var(--bg-hover); }
+  .scenario-card.active {
+    border-color: var(--gold);
+    background: rgba(230, 188, 101, 0.14);
+    box-shadow: 0 0 0 1px var(--gold) inset;
+  }
+  .sc-year { font-size: 11px; color: var(--gold); font-weight: 700; }
+  .sc-name { font-size: 15px; font-weight: 700; margin: 2px 0 4px; color: #fff; }
+  .sc-desc { font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }
+
   .civ-picker {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
     gap: 8px;
-    max-height: 210px;
+    max-height: 215px;
     overflow-y: auto;
     padding-right: 4px;
     margin-bottom: 18px;
@@ -187,50 +191,32 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
+    padding: 7px 9px;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.12s;
   }
-  .civ-opt:hover {
-    background: var(--bg-hover);
-  }
-  .civ-opt.active {
-    border-color: var(--gold);
-    background: rgba(229, 185, 92, 0.16);
-  }
+  .civ-opt:hover { background: var(--bg-hover); }
+  .civ-opt.active { border-color: var(--gold); background: rgba(230, 188, 101, 0.16); }
   .flag-mini {
     width: 26px;
-    height: 18px;
+    height: 17px;
     border-radius: 3px;
     border: 1px solid rgba(255,255,255,0.28);
     flex-shrink: 0;
     overflow: hidden;
-    position: relative;
   }
-  .civ-opt-info {
-    min-width: 0;
-  }
-  .civ-opt-name {
-    font-weight: 700;
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .civ-opt-meta {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
+  .civ-opt-info { min-width: 0; }
+  .civ-opt-name { font-weight: 700; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .civ-opt-meta { font-size: 10.5px; color: var(--text-muted); }
 
   .title-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
-    align-items: center;
   }
 
   /* ===== Buttons ===== */
@@ -238,8 +224,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 7px 13px;
+    gap: 5px;
+    padding: 6px 12px;
     border-radius: 7px;
     border: 1px solid var(--border-subtle);
     background: var(--bg-card);
@@ -250,49 +236,29 @@
     transition: all 0.14s ease;
     white-space: nowrap;
   }
-  .btn:hover:not(:disabled) {
-    background: var(--bg-hover);
-    border-color: rgba(255,255,255,0.28);
-  }
-  .btn:disabled {
-    opacity: 0.42;
-    cursor: not-allowed;
-  }
+  .btn:hover:not(:disabled) { background: var(--bg-hover); border-color: rgba(255,255,255,0.26); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn-gold {
-    background: linear-gradient(180deg, #d9a74a 0%, #a57724 100%);
+    background: linear-gradient(180deg, #dfb052 0%, #a57724 100%);
     border-color: #f3d285;
-    color: #0e141f;
+    color: #0d131d;
     font-weight: 800;
   }
-  .btn-gold:hover:not(:disabled) {
-    filter: brightness(1.08);
-    background: linear-gradient(180deg, #e5b75c 0%, #b5842b 100%);
-  }
+  .btn-gold:hover:not(:disabled) { filter: brightness(1.08); }
   .btn-danger {
-    background: rgba(185, 28, 28, 0.35);
+    background: rgba(185, 28, 28, 0.36);
     border-color: rgba(248, 113, 113, 0.5);
     color: #fecaca;
   }
-  .btn-danger:hover:not(:disabled) {
-    background: rgba(220, 38, 38, 0.52);
-  }
+  .btn-danger:hover:not(:disabled) { background: rgba(220, 38, 38, 0.54); }
   .btn-success {
-    background: rgba(21, 128, 61, 0.38);
+    background: rgba(21, 128, 61, 0.4);
     border-color: rgba(74, 222, 128, 0.5);
     color: #dcfce7;
   }
-  .btn-success:hover:not(:disabled) {
-    background: rgba(22, 163, 74, 0.55);
-  }
-  .btn-lg {
-    padding: 11px 26px;
-    font-size: 14px;
-    border-radius: 9px;
-  }
-  .btn-sm {
-    padding: 5px 9px;
-    font-size: 11px;
-  }
+  .btn-success:hover:not(:disabled) { background: rgba(22, 163, 74, 0.58); }
+  .btn-lg { padding: 10px 24px; font-size: 14px; border-radius: 9px; }
+  .btn-sm { padding: 4px 9px; font-size: 11px; }
 
   /* ===== Top HUD ===== */
   #hud-top {
@@ -313,7 +279,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-width: min(560px, calc(100vw - 140px));
+    max-width: min(600px, calc(100vw - 150px));
   }
 
   .civ-banner {
@@ -323,72 +289,40 @@
     background: var(--bg-panel);
     border: 1px solid var(--border-gold);
     border-radius: 10px;
-    padding: 7px 12px;
+    padding: 6px 12px;
     box-shadow: var(--shadow);
     flex-wrap: wrap;
   }
   .flag-lg {
     width: 44px;
-    height: 30px;
+    height: 29px;
     border-radius: 4px;
     border: 1px solid rgba(255,255,255,0.35);
     cursor: pointer;
     flex-shrink: 0;
     overflow: hidden;
   }
-  .civ-title-block {
-    min-width: 90px;
-  }
-  .civ-name-row {
-    font-size: 14px;
-    font-weight: 800;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .civ-sub-row {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
+  .civ-title-block { min-width: 86px; }
+  .civ-name-row { font-size: 14px; font-weight: 800; color: #fff; }
+  .civ-sub-row { font-size: 10.5px; color: var(--text-muted); }
 
   .stat-strip {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
     border-left: 1px solid var(--border-subtle);
     padding-left: 10px;
   }
-  .stat-pill {
-    display: flex;
-    flex-direction: column;
-    min-width: 62px;
-  }
-  .stat-pill .lbl {
-    font-size: 10px;
-    color: var(--text-muted);
-    line-height: 1.1;
-  }
-  .stat-pill .val {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-main);
-    line-height: 1.25;
-  }
-  .stat-pill .sub {
-    font-size: 10px;
-    font-weight: 600;
-  }
+  .stat-pill { display: flex; flex-direction: column; min-width: 58px; }
+  .stat-pill .lbl { font-size: 10px; color: var(--text-muted); line-height: 1.1; }
+  .stat-pill .val { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.25; }
+  .stat-pill .sub { font-size: 10px; font-weight: 600; }
   .pos { color: var(--green); }
   .neg { color: var(--red); }
   .gold-txt { color: var(--gold); }
 
-  .hud-quick-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  .hud-quick-row { display: flex; flex-wrap: wrap; gap: 5px; }
 
   .hud-right {
     pointer-events: auto;
@@ -397,43 +331,29 @@
     align-items: flex-end;
     gap: 6px;
   }
-
   .date-box {
     background: var(--bg-panel);
     border: 1px solid var(--border-gold);
     border-radius: 10px;
-    padding: 7px 12px;
+    padding: 6px 12px;
     text-align: right;
     box-shadow: var(--shadow);
   }
-  .date-box .date-main {
-    font-size: 14px;
-    font-weight: 800;
-    color: var(--gold);
-  }
-  .date-box .date-sub {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
+  .date-box .date-main { font-size: 14px; font-weight: 800; color: var(--gold); }
+  .date-box .date-sub { font-size: 10.5px; color: var(--text-muted); }
+  .top-tools { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 
-  .top-tools {
-    display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  /* ===== Mode Banner (Move / Editor / Timelapse) ===== */
+  /* ===== Mode Banner ===== */
   #mode-banner {
     position: fixed;
-    top: 88px;
+    top: 86px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 25;
-    background: rgba(18, 28, 44, 0.96);
+    background: rgba(15, 24, 38, 0.96);
     border: 1px solid var(--gold);
     border-radius: 999px;
-    padding: 6px 16px;
+    padding: 6px 15px;
     font-size: 12px;
     font-weight: 700;
     color: #fff;
@@ -441,18 +361,17 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    max-width: 92vw;
   }
-  #mode-banner.hidden {
-    display: none;
-  }
+  #mode-banner.hidden { display: none; }
 
-  /* ===== Battle / Event Ticker (Top-Right Below Date) ===== */
+  /* ===== News Feed ===== */
   #news-feed {
     position: fixed;
-    top: 108px;
+    top: 104px;
     right: 10px;
     z-index: 18;
-    width: min(290px, 44vw);
+    width: min(280px, 42vw);
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -460,23 +379,18 @@
   }
   .news-item {
     pointer-events: auto;
-    background: rgba(15, 22, 34, 0.9);
+    background: rgba(13, 20, 31, 0.88);
     border-left: 3px solid var(--gold);
     border-radius: 6px;
-    padding: 6px 9px;
+    padding: 5px 9px;
     font-size: 11px;
     line-height: 1.35;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-    animation: fadeInRight 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.42);
   }
   .news-item.war { border-left-color: var(--red); }
   .news-item.peace { border-left-color: var(--green); }
-  @keyframes fadeInRight {
-    from { opacity: 0; transform: translateX(12px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
 
-  /* ===== Bottom Bar: Province Panel + Next Turn ===== */
+  /* ===== Bottom HUD ===== */
   #hud-bottom {
     position: fixed;
     bottom: 10px;
@@ -496,13 +410,10 @@
     border: 1px solid var(--border-gold);
     border-radius: 12px;
     padding: 10px 14px;
-    width: min(560px, calc(100vw - 170px));
+    width: min(560px, calc(100vw - 190px));
     box-shadow: var(--shadow);
-    transition: transform 0.15s ease, opacity 0.15s ease;
   }
-  #province-panel.hidden {
-    display: none;
-  }
+  #province-panel.hidden { display: none; }
 
   .prov-head {
     display: flex;
@@ -513,17 +424,8 @@
     border-bottom: 1px solid var(--border-subtle);
     padding-bottom: 6px;
   }
-  .prov-title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-  .prov-name {
-    font-size: 15px;
-    font-weight: 800;
-    color: #fff;
-  }
+  .prov-title-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+  .prov-name { font-size: 15px; font-weight: 800; color: #fff; }
   .prov-tag {
     font-size: 10px;
     padding: 2px 7px;
@@ -533,44 +435,23 @@
   }
   .prov-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
     gap: 6px;
-    margin-bottom: 9px;
-  }
-  .p-stat {
-    background: rgba(255,255,255,0.04);
-    border-radius: 6px;
-    padding: 5px 8px;
-  }
-  .p-stat .k {
-    font-size: 10px;
-    color: var(--text-muted);
-  }
-  .p-stat .v {
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .prov-buildings {
-    font-size: 11px;
-    color: var(--text-muted);
     margin-bottom: 8px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
   }
+  .p-stat { background: rgba(255,255,255,0.04); border-radius: 6px; padding: 5px 8px; }
+  .p-stat .k { font-size: 10px; color: var(--text-muted); }
+  .p-stat .v { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prov-buildings { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 5px; }
   .b-chip {
-    background: rgba(229, 185, 92, 0.12);
-    border: 1px solid rgba(229, 185, 92, 0.3);
+    background: rgba(230, 188, 101, 0.12);
+    border: 1px solid rgba(230, 188, 101, 0.3);
     color: var(--gold);
     padding: 1px 7px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 10.5px;
   }
-  .prov-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  .prov-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 
   .bottom-right {
     pointer-events: auto;
@@ -583,7 +464,7 @@
 
   .map-modes {
     display: flex;
-    gap: 4px;
+    gap: 3px;
     background: var(--bg-panel);
     border: 1px solid var(--border-subtle);
     padding: 4px;
@@ -600,35 +481,25 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .mode-btn:hover {
-    color: #fff;
-    background: rgba(255,255,255,0.06);
-  }
-  .mode-btn.active {
-    background: rgba(229, 185, 92, 0.22);
-    color: var(--gold);
-  }
+  .mode-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  .mode-btn.active { background: rgba(230, 188, 101, 0.22); color: var(--gold); }
 
-  .turn-controls {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
+  .turn-controls { display: flex; gap: 6px; align-items: center; }
   #btn-next-turn {
-    padding: 11px 20px;
+    padding: 10px 20px;
     font-size: 14px;
     border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(217, 167, 74, 0.28);
+    box-shadow: 0 8px 24px rgba(223, 176, 82, 0.28);
   }
 
-  /* ===== Editor Palette ===== */
+  /* ===== Editor Panel ===== */
   #editor-panel {
     position: fixed;
     left: 10px;
     top: 90px;
     z-index: 25;
     width: 240px;
-    max-height: calc(100vh - 180px);
+    max-height: calc(100vh - 170px);
     overflow-y: auto;
     background: var(--bg-panel);
     border: 1px solid var(--gold);
@@ -636,11 +507,9 @@
     padding: 12px;
     box-shadow: var(--shadow);
   }
-  #editor-panel.hidden {
-    display: none;
-  }
+  #editor-panel.hidden { display: none; }
 
-  /* ===== Modal Dialogs ===== */
+  /* ===== Modals ===== */
   .modal-backdrop {
     position: fixed;
     inset: 0;
@@ -652,19 +521,17 @@
     justify-content: center;
     padding: 14px;
   }
-  .modal-backdrop.hidden {
-    display: none;
-  }
+  .modal-backdrop.hidden { display: none; }
   .modal-box {
     width: 100%;
-    max-width: 540px;
-    max-height: 88vh;
+    max-width: 560px;
+    max-height: 86vh;
     overflow-y: auto;
     background: var(--bg-panel-solid);
     border: 1px solid var(--border-gold);
     border-radius: 12px;
     padding: 18px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.78);
   }
   .modal-head {
     display: flex;
@@ -674,73 +541,23 @@
     padding-bottom: 10px;
     margin-bottom: 14px;
   }
-  .modal-head h2 {
-    margin: 0;
-    font-size: 16px;
-    color: var(--gold);
-  }
+  .modal-head h2 { margin: 0; font-size: 16px; color: var(--gold); }
 
   .slider-group {
-    margin-bottom: 12px;
+    margin-bottom: 11px;
     background: rgba(255,255,255,0.03);
     padding: 10px 12px;
     border-radius: 8px;
     border: 1px solid var(--border-subtle);
   }
-  .slider-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    margin-bottom: 6px;
-  }
-  input[type="range"] {
-    width: 100%;
-    accent-color: var(--gold);
-    cursor: pointer;
-  }
+  .slider-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  input[type="range"] { width: 100%; accent-color: var(--gold); cursor: pointer; }
 
-  .list-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-  }
-  .list-table th, .list-table td {
-    padding: 7px 6px;
-    border-bottom: 1px solid var(--border-subtle);
-    text-align: left;
-  }
-  .list-table th {
-    color: var(--gold);
-    font-size: 11px;
-  }
+  .list-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .list-table th, .list-table td { padding: 7px 6px; border-bottom: 1px solid var(--border-subtle); text-align: left; }
+  .list-table th { color: var(--gold); font-size: 11px; }
 
-  .toast {
-    position: fixed;
-    bottom: 92px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 70;
-    background: rgba(15, 23, 36, 0.96);
-    border: 1px solid var(--gold);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    box-shadow: var(--shadow);
-    pointer-events: none;
-    transition: opacity 0.25s;
-  }
-  .toast.hidden {
-    opacity: 0;
-    display: none;
-  }
-
-  .build-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
+  .build-grid, .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .build-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
@@ -748,13 +565,13 @@
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
   }
-  .build-card .b-name { font-weight: 700; color: #fff; }
+  .build-card .b-name { font-weight: 700; color: #fff; font-size: 12.5px; }
   .build-card .b-desc { font-size: 11px; color: var(--text-muted); flex: 1; }
 
   .peace-prov-list {
-    max-height: 200px;
+    max-height: 210px;
     overflow-y: auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -772,22 +589,35 @@
     cursor: pointer;
     font-size: 12px;
   }
-  .peace-item.selected {
-    border-color: var(--gold);
-    background: rgba(229, 185, 92, 0.18);
-  }
+  .peace-item.selected { border-color: var(--gold); background: rgba(230, 188, 101, 0.18); }
 
-  /* Responsive adjustments for narrow panels / mobile */
-  @media (max-width: 720px) {
-    .hud-left { max-width: calc(100vw - 110px); }
-    .stat-strip { border-left: none; padding-left: 0; gap: 6px; }
-    .stat-pill { min-width: 52px; }
+  .toast {
+    position: fixed;
+    bottom: 92px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 70;
+    background: rgba(13, 20, 32, 0.96);
+    border: 1px solid var(--gold);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    pointer-events: none;
+  }
+  .toast.hidden { display: none; }
+
+  @media (max-width: 760px) {
+    .hud-left { max-width: calc(100vw - 115px); }
+    .stat-strip { border-left: none; padding-left: 0; gap: 7px; }
     #province-panel { width: calc(100vw - 20px); }
     #hud-bottom { flex-direction: column; align-items: stretch; }
     .bottom-right { flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
-    .map-modes { overflow-x: auto; max-width: 58vw; }
+    .map-modes { overflow-x: auto; max-width: 56vw; }
     #news-feed { display: none; }
-    .build-grid, .peace-prov-list { grid-template-columns: 1fr; }
+    .build-grid, .tech-grid, .peace-prov-list { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -795,24 +625,32 @@
 <div id="game-wrap">
   <canvas id="map-canvas"></canvas>
 
-  <!-- Title / Scenario Picker -->
-  <div id="title-screen">
+  <!-- Loading Overlay -->
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <div style="font-size:15px;font-weight:700;color:var(--gold);">正在加载真实世界矢量地图…</div>
+    <div id="loading-sub" style="font-size:12px;color:var(--text-muted);">载入 Natural Earth 全球 175 国边界与海运航线</div>
+  </div>
+
+  <!-- Title / Scenario Screen -->
+  <div id="title-screen" class="hidden">
     <div class="title-box">
       <div class="title-header">
-        <div class="title-badge">Grand Strategy Wargame · Web Edition</div>
-        <h1>文明時代 II</h1>
-        <p>回合制大戰略地圖沙盤 — 徵兵、外交、和平條約、科技發展、歷史延時回放與劇本編輯器</p>
+        <div class="title-badge">Age of History II · Real World Atlas Edition</div>
+        <h1>文明时代 II：真实世界版</h1>
+        <p>基于真实世界矢量地理疆域 — 175 个真实国家与地区、跨海航线、科技加点、和平谈判、历史回放与地图编辑器</p>
       </div>
 
-      <p class="section-label">1. 選擇歷史劇本</p>
+      <p class="section-label">1. 选择历史剧本</p>
       <div class="scenario-grid" id="scenario-list"></div>
 
-      <p class="section-label">2. 選擇你要領導的文明</p>
+      <p class="section-label">2. 选择你要领导的文明（进入后也可在地图任意缩放查看全球）</p>
       <div class="civ-picker" id="civ-picker"></div>
 
       <div class="title-actions">
-        <button class="btn btn-gold btn-lg" id="btn-start-game">開始征服之旅</button>
-        <button class="btn btn-lg" id="btn-open-editor">進入劇本編輯器</button>
+        <button class="btn btn-gold btn-lg" id="btn-start-game">开始征服之旅</button>
+        <button class="btn btn-lg" id="btn-load-save" style="display:none;">继续上次存档</button>
+        <button class="btn btn-lg" id="btn-open-editor">剧本编辑器</button>
       </div>
     </div>
   </div>
@@ -821,62 +659,62 @@
   <div id="hud-top">
     <div class="hud-left">
       <div class="civ-banner">
-        <div class="flag-lg" id="hud-flag" title="點擊檢視國家概覽"></div>
+        <div class="flag-lg" id="hud-flag" title="点击打开财政与政策"></div>
         <div class="civ-title-block">
-          <div class="civ-name-row">
-            <span id="hud-civ-name">—</span>
-          </div>
+          <div class="civ-name-row" id="hud-civ-name">—</div>
           <div class="civ-sub-row" id="hud-civ-gov">—</div>
         </div>
         <div class="stat-strip">
           <div class="stat-pill">
-            <span class="lbl">國庫</span>
+            <span class="lbl">国库</span>
             <span class="val gold-txt" id="hud-gold">0</span>
             <span class="sub pos" id="hud-income">+0</span>
           </div>
           <div class="stat-pill">
-            <span class="lbl">行動點</span>
+            <span class="lbl">行动点</span>
             <span class="val" id="hud-mp">0</span>
             <span class="sub" style="color:var(--text-muted)" id="hud-dp">外交 0</span>
           </div>
           <div class="stat-pill">
-            <span class="lbl">總兵力</span>
+            <span class="lbl">总兵力</span>
             <span class="val" id="hud-army">0</span>
             <span class="sub" style="color:var(--text-muted)" id="hud-provs">0 省</span>
           </div>
           <div class="stat-pill">
             <span class="lbl">科技</span>
-            <span class="val" style="color:var(--blue)" id="hud-tech">0.40</span>
-            <span class="sub" style="color:var(--text-muted)" id="hud-rank">排名 #1</span>
+            <span class="val" style="color:var(--blue)" id="hud-tech">0.45</span>
+            <span class="sub" style="color:var(--gold)" id="hud-tp">点数 0</span>
           </div>
         </div>
       </div>
       <div class="hud-quick-row">
-        <button class="btn btn-sm" id="btn-budget">財政與政策</button>
+        <button class="btn btn-sm" id="btn-budget">财政政策</button>
+        <button class="btn btn-sm" id="btn-tech">科技加点</button>
         <button class="btn btn-sm" id="btn-diplo-list">世界外交</button>
-        <button class="btn btn-sm" id="btn-ranking">列強排名</button>
-        <button class="btn btn-sm" id="btn-timelapse">歷史回放</button>
+        <button class="btn btn-sm" id="btn-ranking">列强排名</button>
+        <button class="btn btn-sm" id="btn-timelapse">历史回放</button>
+        <button class="btn btn-sm" id="btn-save">存档</button>
       </div>
     </div>
 
     <div class="hud-right">
       <div class="date-box">
-        <div class="date-main" id="hud-date">1440年 5月</div>
-        <div class="date-sub" id="hud-turn">第 1 回合 · 歐亞大陸</div>
+        <div class="date-main" id="hud-date">2026年 1月</div>
+        <div class="date-sub" id="hud-turn">第 1 回合 · 现代世界</div>
       </div>
       <div class="top-tools">
         <button class="btn btn-sm" id="btn-zoom-in" title="放大">＋</button>
-        <button class="btn btn-sm" id="btn-zoom-out" title="縮小">－</button>
-        <button class="btn btn-sm" id="btn-zoom-reset" title="重置視角">⌖</button>
-        <button class="btn btn-sm" id="btn-mute" title="開關音效">🔊</button>
-        <button class="btn btn-sm" id="btn-menu" title="回到選單">選單</button>
+        <button class="btn btn-sm" id="btn-zoom-out" title="缩小">－</button>
+        <button class="btn btn-sm" id="btn-zoom-reset" title="定位本土">⌖</button>
+        <button class="btn btn-sm" id="btn-mute" title="音效开关">🔊</button>
+        <button class="btn btn-sm" id="btn-menu" title="主菜单">菜单</button>
       </div>
     </div>
   </div>
 
   <!-- Mode Banner -->
   <div id="mode-banner" class="hidden">
-    <span id="mode-banner-text">請點選相鄰省份作為行軍目標</span>
+    <span id="mode-banner-text">请点选相邻或海路相连的地区</span>
     <button class="btn btn-sm btn-danger" id="btn-cancel-mode">取消</button>
   </div>
 
@@ -886,12 +724,12 @@
   <!-- Editor Panel -->
   <div id="editor-panel" class="hidden">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <strong style="color:var(--gold);font-size:13px;">劇本編輯器</strong>
-      <button class="btn btn-sm btn-gold" id="btn-editor-play">開始遊玩</button>
+      <strong style="color:var(--gold);font-size:13px;">世界剧本编辑器</strong>
+      <button class="btn btn-sm btn-gold" id="btn-editor-play">开始游玩</button>
     </div>
-    <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px;line-height:1.4;">選擇下方文明後，點擊地圖上的省份即可直接塗色修改歸屬。</p>
+    <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px;line-height:1.4;">选中下方任意国家后，直接点击地图上的国家领土即可涂色改写疆域。</p>
     <div id="editor-civ-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;"></div>
-    <button class="btn btn-sm" style="width:100%;" id="btn-editor-exit">返回主選單</button>
+    <button class="btn btn-sm" style="width:100%;" id="btn-editor-exit">返回主菜单</button>
   </div>
 
   <!-- Bottom HUD -->
@@ -900,18 +738,18 @@
       <div class="prov-head">
         <div class="prov-title-wrap">
           <div class="flag-mini" id="prov-flag"></div>
-          <span class="prov-name" id="prov-name">省份名稱</span>
+          <span class="prov-name" id="prov-name">地区</span>
           <span class="prov-tag" id="prov-terrain">平原</span>
           <span class="prov-tag" id="prov-capital-tag" style="display:none;color:var(--gold);border:1px solid var(--border-gold);">★ 首都</span>
         </div>
         <button class="btn btn-sm" id="btn-close-prov">✕</button>
       </div>
       <div class="prov-stats">
-        <div class="p-stat"><div class="k">所屬文明</div><div class="v" id="prov-owner">—</div></div>
-        <div class="p-stat"><div class="k">駐軍兵力</div><div class="v" id="prov-army">0</div></div>
+        <div class="p-stat"><div class="k">所属势力</div><div class="v" id="prov-owner">—</div></div>
+        <div class="p-stat"><div class="k">驻军兵力</div><div class="v" id="prov-army">0</div></div>
         <div class="p-stat"><div class="k">人口</div><div class="v" id="prov-pop">0</div></div>
-        <div class="p-stat"><div class="k">經濟</div><div class="v gold-txt" id="prov-econ">0</div></div>
-        <div class="p-stat"><div class="k">穩定度</div><div class="v" id="prov-stab">100%</div></div>
+        <div class="p-stat"><div class="k">经济值</div><div class="v gold-txt" id="prov-econ">0</div></div>
+        <div class="p-stat"><div class="k">稳定度</div><div class="v" id="prov-stab">100%</div></div>
       </div>
       <div class="prov-buildings" id="prov-buildings"></div>
       <div class="prov-actions" id="prov-actions"></div>
@@ -921,12 +759,12 @@
       <div class="map-modes" id="map-modes">
         <button class="mode-btn active" data-mode="political">政治</button>
         <button class="mode-btn" data-mode="diplomacy">外交</button>
-        <button class="mode-btn" data-mode="economy">經濟</button>
+        <button class="mode-btn" data-mode="economy">经济</button>
         <button class="mode-btn" data-mode="population">人口</button>
         <button class="mode-btn" data-mode="terrain">地形</button>
       </div>
       <div class="turn-controls">
-        <button class="btn" id="btn-undo-orders" title="撤銷本回合所有行軍命令">撤銷命令 (<span id="order-count">0</span>)</button>
+        <button class="btn" id="btn-undo-orders">撤销命令 (<span id="order-count">0</span>)</button>
         <button class="btn btn-gold" id="btn-next-turn">下一回合 ▸</button>
       </div>
     </div>
@@ -936,7 +774,7 @@
   <div class="modal-backdrop hidden" id="modal-backdrop">
     <div class="modal-box">
       <div class="modal-head">
-        <h2 id="modal-title">標題</h2>
+        <h2 id="modal-title">标题</h2>
         <button class="btn btn-sm" id="btn-close-modal">✕</button>
       </div>
       <div id="modal-body"></div>
@@ -951,11 +789,9 @@
 (() => {
   'use strict';
 
-  // ======================== SOUND ENGINE (Web Audio API) ========================
+  // ======================== WEB AUDIO SFX ========================
   const Sound = (() => {
-    let ctx = null;
-    let muted = false;
-
+    let ctx = null, muted = false;
     function ensure() {
       if (muted) return null;
       if (!ctx) {
@@ -965,390 +801,387 @@
       if (ctx && ctx.state === 'suspended') ctx.resume();
       return ctx;
     }
-
-    function tone(freq, dur, type = 'triangle', vol = 0.08, delay = 0) {
+    function tone(freq, dur, type = 'triangle', vol = 0.07, delay = 0) {
       const c = ensure();
       if (!c) return;
       const now = c.currentTime + delay;
-      const osc = c.createOscillator();
-      const gain = c.createGain();
+      const osc = c.createOscillator(), gain = c.createGain();
       osc.type = type;
       osc.frequency.setValueAtTime(freq, now);
       gain.gain.setValueAtTime(0.0001, now);
       gain.gain.exponentialRampToValueAtTime(vol, now + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-      osc.connect(gain);
-      gain.connect(c.destination);
-      osc.start(now);
-      osc.stop(now + dur + 0.02);
+      osc.connect(gain); gain.connect(c.destination);
+      osc.start(now); osc.stop(now + dur + 0.02);
     }
-
     return {
-      isMuted: () => muted,
-      toggle: () => { muted = !muted; return muted; },
-      click: () => tone(520, 0.06, 'sine', 0.05),
-      coin: () => { tone(880, 0.08, 'triangle', 0.06, 0); tone(1320, 0.12, 'triangle', 0.06, 0.06); },
-      march: () => { tone(160, 0.09, 'sawtooth', 0.05, 0); tone(130, 0.11, 'triangle', 0.06, 0.08); },
-      turn: () => { tone(330, 0.09, 'triangle', 0.05, 0); tone(440, 0.12, 'triangle', 0.05, 0.07); },
-      war: () => { tone(220, 0.22, 'sawtooth', 0.08, 0); tone(185, 0.35, 'sawtooth', 0.09, 0.18); },
-      peace: () => { tone(523, 0.14, 'sine', 0.07, 0); tone(659, 0.16, 'sine', 0.07, 0.12); tone(784, 0.25, 'sine', 0.07, 0.24); },
-      battle: () => { tone(110, 0.12, 'square', 0.07, 0); tone(90, 0.16, 'sawtooth', 0.06, 0.09); }
+      toggle: () => (muted = !muted),
+      click: () => tone(520, 0.05, 'sine', 0.04),
+      coin: () => { tone(860, 0.08, 'triangle', 0.06, 0); tone(1280, 0.11, 'triangle', 0.06, 0.06); },
+      march: () => { tone(155, 0.08, 'sawtooth', 0.05, 0); tone(125, 0.10, 'triangle', 0.06, 0.07); },
+      turn: () => { tone(330, 0.08, 'triangle', 0.05, 0); tone(440, 0.11, 'triangle', 0.05, 0.06); },
+      war: () => { tone(210, 0.22, 'sawtooth', 0.08, 0); tone(175, 0.34, 'sawtooth', 0.08, 0.18); },
+      peace: () => { tone(523, 0.12, 'sine', 0.06, 0); tone(659, 0.14, 'sine', 0.06, 0.11); tone(784, 0.22, 'sine', 0.06, 0.22); },
+      battle: () => { tone(110, 0.11, 'square', 0.06, 0); tone(86, 0.15, 'sawtooth', 0.05, 0.08); }
     };
   })();
 
-  // ======================== SEEDED RNG ========================
-  function mulberry32(seed) {
-    let a = seed >>> 0;
-    return function() {
-      a |= 0; a = (a + 0x6D2B79F5) | 0;
-      let t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
+  // ======================== REAL WORLD COUNTRY NAMES (ISO 3166-1 Numeric) ========================
+  const CN_NAMES = {
+    '156':'中国','158':'台湾','392':'日本','410':'韩国','408':'朝鲜','496':'蒙古',
+    '704':'越南','764':'泰国','104':'缅甸','418':'老挝','116':'柬埔寨','458':'马来西亚',
+    '360':'印度尼西亚','608':'菲律宾','096':'文莱','626':'东帝汶',
+    '356':'印度','586':'巴基斯坦','050':'孟加拉国','144':'斯里兰卡','524':'尼泊尔','064':'不丹',
+    '004':'阿富汗','364':'伊朗','368':'伊拉克','792':'土耳其','760':'叙利亚','400':'约旦',
+    '376':'以色列','275':'巴勒斯坦','422':'黎巴嫩','682':'沙特阿拉伯','887':'也门','512':'阿曼',
+    '784':'阿联酋','634':'卡塔尔','414':'科威特','196':'塞浦路斯',
+    '643':'俄罗斯','398':'哈萨克斯坦','860':'乌兹别克斯坦','795':'土库曼斯坦','417':'吉尔吉斯斯坦','762':'塔吉克斯坦',
+    '031':'阿塞拜疆','051':'亚美尼亚','268':'格鲁吉亚',
+    '804':'乌克兰','112':'白俄罗斯','616':'波兰','276':'德国','250':'法国','826':'英国','372':'爱尔兰',
+    '724':'西班牙','620':'葡萄牙','380':'意大利','756':'瑞士','040':'奥地利','203':'捷克','703':'斯洛伐克',
+    '348':'匈牙利','642':'罗马尼亚','100':'保加利亚','300':'希腊','688':'塞尔维亚','191':'克罗地亚',
+    '070':'波黑','705':'斯洛文尼亚','008':'阿尔巴尼亚','807':'北马其顿','499':'黑山','498':'摩尔多瓦',
+    '528':'荷兰','056':'比利时','442':'卢森堡','208':'丹麦','578':'挪威','752':'瑞典','246':'芬兰',
+    '352':'冰岛','233':'爱沙尼亚','428':'拉脱维亚','440':'立陶宛',
+    '840':'美国','124':'加拿大','484':'墨西哥','304':'格陵兰','192':'古巴','332':'海地','214':'多米尼加',
+    '388':'牙买加','630':'波多黎各','044':'巴哈马','320':'危地马拉','084':'伯利兹','340':'洪都拉斯',
+    '222':'萨尔瓦多','558':'尼加拉瓜','188':'哥斯达黎加','591':'巴拿马',
+    '076':'巴西','032':'阿根廷','152':'智利','604':'秘鲁','170':'哥伦比亚','862':'委内瑞拉',
+    '218':'厄瓜多尔','068':'玻利维亚','600':'巴拉圭','858':'乌拉圭','328':'圭亚那','740':'苏里南',
+    '818':'埃及','434':'利比亚','788':'突尼斯','012':'阿尔及利亚','504':'摩洛哥','732':'西撒哈拉',
+    '729':'苏丹','728':'南苏丹','231':'埃塞俄比亚','232':'厄立特里亚','262':'吉布提','706':'索马里',
+    '404':'肯尼亚','800':'乌干达','834':'坦桑尼亚','646':'卢旺达','108':'布隆迪','180':'刚果(金)',
+    '178':'刚果(布)','140':'中非','148':'乍得','562':'尼日尔','466':'马里','478':'毛里塔尼亚',
+    '686':'塞内加尔','270':'冈比亚','624':'几内亚比绍','324':'几内亚','694':'塞拉利昂','430':'利比里亚',
+    '384':'科特迪瓦','854':'布基纳法索','288':'加纳','768':'多哥','204':'贝宁','566':'尼日利亚',
+    '120':'喀麦隆','266':'加蓬','226':'赤道几内亚','024':'安哥拉','894':'赞比亚','454':'马拉维',
+    '508':'莫桑比克','716':'津巴布韦','072':'博茨瓦纳','516':'纳米比亚','710':'南非','426':'莱索托',
+    '748':'斯威士兰','450':'马达加斯加',
+    '036':'澳大利亚','554':'新西兰','598':'巴布亚新几内亚','090':'所罗门群岛','242':'斐济','548':'瓦努阿图','540':'新喀里多尼亚'
+  };
 
-  // ======================== SCENARIOS & CIVILIZATIONS ========================
+  // Curated Real-World Maritime Sea Lanes (ISO pairs)
+  const SEA_LANES_ISO = [
+    ['826','250'], ['826','372'], ['826','578'], ['826','528'], ['826','352'],
+    ['352','304'], ['304','124'], ['826','124'], ['250','840'], ['620','076'],
+    ['724','504'], ['380','788'], ['380','300'], ['380','434'], ['300','792'],
+    ['300','818'], ['792','196'], ['196','818'], ['818','682'], ['887','706'],
+    ['887','232'], ['364','784'], ['364','512'], ['512','356'], ['356','144'],
+    ['392','410'], ['392','156'], ['392','643'], ['392','158'], ['392','608'],
+    ['156','158'], ['156','410'], ['158','608'], ['608','360'], ['608','458'],
+    ['458','360'], ['360','036'], ['360','598'], ['598','036'], ['036','554'],
+    ['392','840'], ['643','840'], ['840','192'], ['192','484'], ['192','332'],
+    ['214','862'], ['450','508'], ['752','246'], ['208','578'], ['208','752'],
+    ['752','233'], ['246','233'], ['076','686'], ['152','554'], ['710','032']
+  ];
+
+  // Terrain & Building Definitions
   const TERRAIN_INFO = {
-    plains:   { name: '平原', def: 0.00, color: '#4d7c4f', growth: 1.15 },
-    hills:    { name: '丘陵', def: 0.15, color: '#7d734b', growth: 1.00 },
-    forest:   { name: '森林', def: 0.20, color: '#2e5c3e', growth: 1.05 },
-    mountain: { name: '山地', def: 0.35, color: '#6b6763', growth: 0.85 },
-    desert:   { name: '沙漠', def: 0.05, color: '#a88c56', growth: 0.75 }
+    plains:   { name: '平原', def: 0.00, color: '#4c774d', growth: 1.15 },
+    hills:    { name: '丘陵', def: 0.15, color: '#7a7048', growth: 1.00 },
+    forest:   { name: '森林', def: 0.20, color: '#2d5a3d', growth: 1.05 },
+    mountain: { name: '山地', def: 0.35, color: '#6b655e', growth: 0.85 },
+    desert:   { name: '沙漠', def: 0.05, color: '#a38754', growth: 0.78 }
   };
 
   const BUILDINGS = {
-    farm:      { name: '農場',   cost: 350, icon: '🌾', desc: '提升人口增長率 +25%，穩定糧食供應' },
-    workshop:  { name: '工坊',   cost: 450, icon: '⚒',  desc: '提升省份經濟稅收 +22%' },
-    fort:      { name: '堡壘',   cost: 550, icon: '🏰', desc: '駐軍防禦力 +35%，極大拖延敵軍推進' },
-    supply:    { name: '補給營', cost: 400, icon: '⛺', desc: '該省駐軍維護費降低 30%' }
+    farm:     { name: '农场',   cost: 350, icon: '🌾', desc: '人口增长率 +25%，稳固后勤粮仓' },
+    workshop: { name: '工坊',   cost: 460, icon: '⚒',  desc: '地区经济税收 +24%' },
+    fort:     { name: '堡垒',   cost: 560, icon: '🏰', desc: '驻军防御力 +35%，抵御强敌进攻' },
+    supply:   { name: '补给营', cost: 400, icon: '⛺', desc: '该地区驻军维护费降低 30%' },
+    uni:      { name: '大学',   cost: 620, icon: '🎓', desc: '科研产出 +20%，加快科技点获取' },
+    port:     { name: '港口',   cost: 420, icon: '⚓', desc: '提升贸易收入 +35 金币/回合' }
   };
 
-  const PROVINCE_NAMES = [
-    '維也納','布拉格','柏林','慕尼黑','法蘭克福','漢堡','科隆','蘇黎世',
-    '巴黎','里昂','馬賽','波爾多','諾曼第','布列塔尼','洛林','普羅旺斯',
-    '倫敦','約克','愛丁堡','都柏林','威爾斯','布里斯托','康沃爾','格拉斯哥',
-    '馬德里','巴塞隆納','塞維亞','瓦倫西亞','里斯本','波多','納瓦拉','格拉納達',
-    '羅馬','威尼斯','米蘭','佛羅倫斯','拿坡里','熱那亞','西西里','薩丁尼亞',
-    '君士坦丁堡','安卡拉','伊茲密爾','特拉布宗','雅典','塞薩洛尼基','貝爾格勒','索菲亞',
-    '華沙','克拉科夫','格但斯克','基輔','明斯克','維爾紐斯','里加','布達佩斯',
-    '莫斯科','諾夫哥羅德','聖彼得堡','喀山','伏爾加格勒','羅斯托夫','斯摩棱斯克','特維爾',
-    '開羅','亞歷山大','大馬士革','巴格達','耶路撒冷','德黑蘭','撒馬爾罕','布哈拉',
-    '長安','洛陽','金陵','燕京','成都','廣州','杭州','泉州'
+  const TECH_PERKS = [
+    { key: 'pop',   name: '人口增长', desc: '全国人口增速 +4%/级', max: 10 },
+    { key: 'econ',  name: '经济发展', desc: '全国经济增长 +4%/级', max: 10 },
+    { key: 'tax',   name: '税收效率', desc: '全国税收收入 +5%/级', max: 10 },
+    { key: 'upkeep',name: '后勤减免', desc: '军队维护费 -4%/级',   max: 10 },
+    { key: 'atk',   name: '军事进攻', desc: '军队进攻战力 +5%/级', max: 10 },
+    { key: 'def',   name: '国防工事', desc: '军队防御战力 +5%/级', max: 10 }
   ];
+
+  // ======================== SCENARIO PRESETS (Real Geography!) ========================
+  const MAJOR_MODERN_CIVS = {
+    '156': { name:'中国',     gov:'人民共和国', color:'#c93a32', flag:['#c92a2a','#f5d061','star'],   gold:4800, tech:0.92, pop:1400000, econ:3200 },
+    '840': { name:'美国',     gov:'联邦共和',   color:'#2d5fa8', flag:['#1d469e','#d63031','stripe'], gold:5200, tech:0.95, pop:340000,  econ:3600 },
+    '643': { name:'俄罗斯',   gov:'联邦共和',   color:'#3b7a52', flag:['#f4f4f4','#244fa8','tri-h'],  gold:3600, tech:0.88, pop:145000,  econ:2100 },
+    '356': { name:'印度',     gov:'联邦共和',   color:'#d47b2c', flag:['#e67e22','#27ae60','tri-h'],  gold:3900, tech:0.86, pop:1420000, econ:2400 },
+    '276': { name:'德国',     gov:'联邦共和',   color:'#5f6873', flag:['#1a1a1a','#e5b95c','tri-h'],  gold:3400, tech:0.94, pop:84000,   econ:2300 },
+    '250': { name:'法国',     gov:'共和国',     color:'#3668bf', flag:['#204ba0','#d63031','tri-v'],  gold:3200, tech:0.93, pop:68000,   econ:2100 },
+    '826': { name:'英国',     gov:'君主立宪',   color:'#b53b56', flag:['#1b3c7a','#cf2b3b','cross'],  gold:3200, tech:0.93, pop:68000,   econ:2150 },
+    '392': { name:'日本',     gov:'君主立宪',   color:'#d66b78', flag:['#f4f4f4','#c92a2a','dot'],    gold:3500, tech:0.94, pop:124000,  econ:2450 },
+    '076': { name:'巴西',     gov:'联邦共和',   color:'#3d914e', flag:['#25823b','#f2c94c','dot'],    gold:2800, tech:0.84, pop:215000,  econ:1800 },
+    '792': { name:'土耳其',   gov:'共和国',     color:'#bf423b', flag:['#c42525','#f4f4f4','star'],   gold:2500, tech:0.86, pop:86000,   econ:1550 },
+    '380': { name:'意大利',   gov:'共和国',     color:'#4a915e', flag:['#2e8b47','#d13438','tri-v'],  gold:2600, tech:0.90, pop:59000,   econ:1750 },
+    '724': { name:'西班牙',   gov:'君主立宪',   color:'#c98f32', flag:['#c92a2a','#f2c94c','tri-h'],  gold:2400, tech:0.89, pop:48000,   econ:1550 },
+    '616': { name:'波兰',     gov:'共和国',     color:'#b84870', flag:['#f4f4f4','#d13448','bi-h'],   gold:2300, tech:0.88, pop:38000,   econ:1450 },
+    '804': { name:'乌克兰',   gov:'共和国',     color:'#3f85b8', flag:['#2874c4','#f2c94c','bi-h'],   gold:2000, tech:0.85, pop:37000,   econ:1150 },
+    '364': { name:'伊朗',     gov:'共和国',     color:'#5a8a4b', flag:['#2e8b47','#c92a2a','tri-h'],  gold:2200, tech:0.83, pop:89000,   econ:1300 },
+    '682': { name:'沙特阿拉伯', gov:'君主制',   color:'#2d7d4c', flag:['#1d6b3c','#f4f4f4','stripe'], gold:2900, tech:0.86, pop:36000,   econ:1700 },
+    '818': { name:'埃及',     gov:'共和国',     color:'#b39642', flag:['#c92a2a','#1a1a1a','tri-h'],  gold:2100, tech:0.81, pop:112000,  econ:1250 },
+    '410': { name:'韩国',     gov:'共和国',     color:'#4a7ab8', flag:['#f4f4f4','#244fa8','dot'],    gold:2800, tech:0.94, pop:52000,   econ:1850 },
+    '360': { name:'印度尼西亚', gov:'共和国',   color:'#c45048', flag:['#c92a2a','#f4f4f4','bi-h'],   gold:2400, tech:0.83, pop:278000,  econ:1550 },
+    '036': { name:'澳大利亚', gov:'君主立宪',   color:'#3b7ca8', flag:['#1d469e','#f4f4f4','star'],   gold:2700, tech:0.92, pop:27000,   econ:1750 },
+    '124': { name:'加拿大',   gov:'君主立宪',   color:'#c74646', flag:['#c92a2a','#f4f4f4','tri-v'],  gold:2800, tech:0.93, pop:40000,   econ:1800 },
+    '484': { name:'墨西哥',   gov:'联邦共和',   color:'#3a8255', flag:['#257a44','#c92a2a','tri-v'],  gold:2300, tech:0.84, pop:129000,  econ:1450 },
+    '032': { name:'阿根廷',   gov:'联邦共和',   color:'#5ca4cf', flag:['#5ca4cf','#f4f4f4','tri-h'],  gold:1900, tech:0.84, pop:46000,   econ:1150 },
+    '710': { name:'南非',     gov:'共和国',     color:'#4a8c5c', flag:['#257a44','#e6bc65','tri-h'],  gold:1850, tech:0.82, pop:61000,   econ:1100 }
+  };
 
   const SCENARIOS = [
     {
-      id: '1440',
-      year: 1440,
-      month: 5,
-      name: '1440 諸王時代',
-      desc: '中世紀落幕與文藝復興拂曉，帝國林立、城邦爭雄，最經典的擴張起點。',
-      stepMonths: 3,
-      civs: [
-        { id: 1, name: '神聖羅馬帝國', gov: '君主制', color: '#d4a63a', flag: ['#d4a63a','#1a1a1a','cross'], gold: 1800, tech: 0.45, region: [0.43, 0.36] },
-        { id: 2, name: '法蘭西王國',   gov: '君主制', color: '#3b6fd4', flag: ['#244fa8','#f5d061','tri-v'], gold: 1750, tech: 0.45, region: [0.27, 0.42] },
-        { id: 3, name: '奧斯曼蘇丹國', gov: '蘇丹國', color: '#c93838', flag: ['#b52222','#f4f4f4','star'],  gold: 1950, tech: 0.46, region: [0.62, 0.63] },
-        { id: 4, name: '大明皇朝',     gov: '帝國',   color: '#d96b27', flag: ['#d96b27','#f6d55c','stripe'], gold: 2300, tech: 0.48, region: [0.85, 0.56] },
-        { id: 5, name: '莫斯科大公國', gov: '公國',   color: '#4c8f52', flag: ['#3b7a40','#e6e6e6','tri-h'], gold: 1500, tech: 0.40, region: [0.69, 0.28] },
-        { id: 6, name: '卡斯提亞王國', gov: '君主制', color: '#c9883a', flag: ['#c93838','#e6be4c','tri-h'], gold: 1650, tech: 0.44, region: [0.17, 0.62] },
-        { id: 7, name: '英格蘭王國',   gov: '君主制', color: '#b83b5e', flag: ['#f4f4f4','#c42b2b','cross'], gold: 1600, tech: 0.45, region: [0.22, 0.24] },
-        { id: 8, name: '威尼斯共和國', gov: '共和國', color: '#2ea8a8', flag: ['#1e8282','#f0c75e','stripe'], gold: 1900, tech: 0.49, region: [0.44, 0.56] },
-        { id: 9, name: '波蘭立陶宛',   gov: '聯邦',   color: '#b04878', flag: ['#f0f0f0','#c93855','bi-h'],  gold: 1600, tech: 0.43, region: [0.55, 0.35] },
-        { id: 10, name: '馬木路克王朝', gov: '蘇丹國', color: '#a8963e', flag: ['#c9b038','#2c2c2c','star'],  gold: 1550, tech: 0.42, region: [0.63, 0.80] },
-        { id: 11, name: '帖木兒帝國',   gov: '汗國',   color: '#7e4eb8', flag: ['#5c2e91','#e5b95c','star'],  gold: 1600, tech: 0.41, region: [0.77, 0.72] },
-        { id: 12, name: '北歐卡爾馬',   gov: '共主邦聯', color: '#5382a6', flag: ['#e6c245','#b82e2e','cross'], gold: 1450, tech: 0.42, region: [0.46, 0.16] }
-      ]
+      id: '2026',
+      year: 2026,
+      month: 1,
+      stepMonths: 2,
+      name: '2026 现代世界',
+      desc: '全球 175 个真实国家与地区完整版图，自由选择大国或小国改写现代世界格局。',
+      featuredIds: ['156','840','643','356','276','250','826','392','076','792','380','724','616','804','364','682','818','410','360','036','124','484'],
+      empires: null // All countries start independent!
     },
     {
       id: '1936',
       year: 1936,
       month: 1,
-      name: '1936 風暴前夕',
-      desc: '工業列強已完成動員，陣營對立一觸即發，高兵力與高節奏的全面大戰。',
       stepMonths: 1,
-      civs: [
-        { id: 1, name: '德意志國',   gov: '威權體制', color: '#5b6470', flag: ['#222','#c93838','cross'], gold: 3400, tech: 0.72, region: [0.43, 0.35] },
-        { id: 2, name: '法蘭西共和國', gov: '共和國', color: '#3b6fd4', flag: ['#1f4aa8','#e63946','tri-v'], gold: 3100, tech: 0.70, region: [0.26, 0.44] },
-        { id: 3, name: '大英帝國',   gov: '君主立憲', color: '#c4455e', flag: ['#1b3b7a','#cf2b3b','cross'], gold: 3600, tech: 0.73, region: [0.22, 0.24] },
-        { id: 4, name: '蘇維埃聯邦', gov: '聯盟',   color: '#b82929', flag: ['#b81f1f','#f2c94c','star'],  gold: 3500, tech: 0.68, region: [0.68, 0.30] },
-        { id: 5, name: '義大利王國', gov: '君主制', color: '#4c9152', flag: ['#2f8f46','#d13438','tri-v'], gold: 2600, tech: 0.67, region: [0.44, 0.58] },
-        { id: 6, name: '中華民國',   gov: '共和國', color: '#d99a2b', flag: ['#c92e2e','#244fa8','star'],  gold: 2700, tech: 0.62, region: [0.85, 0.56] },
-        { id: 7, name: '土耳其共和國', gov: '共和國', color: '#c95238', flag: ['#c92a2a','#ffffff','star'], gold: 2200, tech: 0.64, region: [0.62, 0.65] },
-        { id: 8, name: '西班牙共和國', gov: '共和國', color: '#c9883a', flag: ['#c92a2a','#e6c245','tri-h'], gold: 2100, tech: 0.64, region: [0.17, 0.62] }
-      ]
+      name: '1936 二战前夕',
+      desc: '工业列强与殖民帝国全面对峙：苏联、大英帝国、德意志、法兰西、日本与中美同场角逐。',
+      featuredIds: ['156','276','643','826','250','840','392','380','724','616','792','076'],
+      empires: {
+        '643': { name:'苏维埃联盟',   gov:'联盟',     color:'#a82424', flag:['#b51d1d','#f2c94c','star'],   gold:4200, tech:0.70, members:['643','804','112','398','860','795','417','762','031','051','268'] },
+        '826': { name:'大英帝国',     gov:'君主立宪', color:'#b83b56', flag:['#1b3b7a','#cf2b3b','cross'],  gold:4600, tech:0.74, members:['826','124','036','554','356','586','050','104','144','458','818','729','728','404','800','834','566','288','710','072','716','894','454','376','400','368'] },
+        '250': { name:'法兰西共和国', gov:'共和国',   color:'#3262b8', flag:['#1f4aa8','#d63031','tri-v'],  gold:3700, tech:0.72, members:['250','012','504','788','466','562','148','686','324','384','854','204','140','178','266','120','450','760','422','704','418','116'] },
+        '276': { name:'德意志国',     gov:'威权体制', color:'#525b66', flag:['#222','#c93838','cross'],     gold:3900, tech:0.76, members:['276','040','203'] },
+        '380': { name:'意大利王国',   gov:'君主制',   color:'#45874d', flag:['#2f8f46','#d13438','tri-v'],  gold:2800, tech:0.68, members:['380','434','232','706','008'] },
+        '392': { name:'大日本帝国',   gov:'帝国',     color:'#d45b68', flag:['#f4f4f4','#c92a2a','dot'],    gold:3400, tech:0.73, members:['392','410','408','158'] },
+        '156': { name:'中华民国',     gov:'共和国',   color:'#d4952a', flag:['#c92e2e','#244fa8','star'],   gold:3100, tech:0.62, members:['156'] },
+        '840': { name:'美利坚合众国', gov:'联邦共和', color:'#2e62ad', flag:['#1d469e','#d63031','stripe'], gold:4800, tech:0.76, members:['840','608','630'] },
+        '616': { name:'波兰第二共和', gov:'共和国',   color:'#b0466e', flag:['#f4f4f4','#d13448','bi-h'],   gold:2100, tech:0.66, members:['616'] },
+        '724': { name:'西班牙共和国', gov:'共和国',   color:'#c48633', flag:['#c92a2a','#e6c245','tri-h'],  gold:2000, tech:0.65, members:['724','732'] },
+        '792': { name:'土耳其共和国', gov:'共和国',   color:'#bf4a3b', flag:['#c42525','#f4f4f4','star'],   gold:2100, tech:0.65, members:['792'] },
+        '076': { name:'巴西合众国',   gov:'联邦共和', color:'#3a8a4b', flag:['#25823b','#f2c94c','dot'],    gold:2300, tech:0.64, members:['076'] }
+      }
     },
     {
-      id: '2026',
-      year: 2026,
-      month: 1,
-      name: '2026 現代世界',
-      desc: '多極化現代世界，高經濟產出與科技競賽，透過外交與經濟優勢改寫格局。',
-      stepMonths: 2,
-      civs: [
-        { id: 1, name: '歐洲聯盟核心', gov: '聯邦共和', color: '#3366cc', flag: ['#1d469e','#f2c94c','star'],  gold: 4200, tech: 0.92, region: [0.36, 0.40] },
-        { id: 2, name: '聯合王國',     gov: '議會君主', color: '#b53f5e', flag: ['#1d3c7a','#d63031','cross'], gold: 3600, tech: 0.91, region: [0.22, 0.24] },
-        { id: 3, name: '俄羅斯聯邦',   gov: '聯邦共和', color: '#3b8255', flag: ['#ffffff','#2b5cb8','tri-h'], gold: 3800, tech: 0.88, region: [0.68, 0.28] },
-        { id: 4, name: '東亞共和國',   gov: '共和國',   color: '#d9483b', flag: ['#cc2929','#f5d061','star'],  gold: 4600, tech: 0.93, region: [0.85, 0.56] },
-        { id: 5, name: '地中海聯盟',   gov: '共和國',   color: '#2e9ca6', flag: ['#1e8282','#f5f5f5','tri-v'], gold: 3200, tech: 0.88, region: [0.45, 0.58] },
-        { id: 6, name: '安納托利亞',   gov: '共和國',   color: '#c45835', flag: ['#c92a2a','#ffffff','star'],  gold: 3000, tech: 0.86, region: [0.62, 0.64] },
-        { id: 7, name: '中歐維謝格拉德', gov: '聯盟',   color: '#a84e7e', flag: ['#f2f2f2','#c93855','bi-h'],  gold: 3100, tech: 0.89, region: [0.53, 0.36] },
-        { id: 8, name: '北非聯盟',     gov: '共和國',   color: '#b0913c', flag: ['#c9a538','#222222','tri-h'], gold: 2700, tech: 0.82, region: [0.62, 0.80] },
-        { id: 9, name: '中亞合作體',   gov: '聯盟',     color: '#6e52b5', flag: ['#4f3694','#f0c75e','stripe'], gold: 2600, tech: 0.83, region: [0.78, 0.72] },
-        { id: 10, name: '北歐理事會',  gov: '議會共和', color: '#4d82ab', flag: ['#2e6ea6','#f2c94c','cross'], gold: 3400, tech: 0.94, region: [0.46, 0.16] }
-      ]
+      id: '1440',
+      year: 1440,
+      month: 5,
+      stepMonths: 4,
+      name: '1440 诸王时代',
+      desc: '中世纪落幕与大航海前夜：大明、奥斯曼、神圣罗马、法兰西、莫斯科、帖木儿与印加争雄。',
+      featuredIds: ['156','792','276','250','826','724','616','643','818','364','356','392','604','484'],
+      empires: {
+        '156': { name:'大明帝国',     gov:'帝国',     color:'#d46326', flag:['#d46326','#f5d061','stripe'], gold:2800, tech:0.48, members:['156','158'] },
+        '792': { name:'奥斯曼帝国',   gov:'苏丹国',   color:'#bf3434', flag:['#b52222','#f4f4f4','star'],   gold:2400, tech:0.47, members:['792','300','100','807','688'] },
+        '276': { name:'神圣罗马帝国', gov:'帝制联邦', color:'#cfa238', flag:['#cfa238','#1a1a1a','cross'],  gold:2400, tech:0.46, members:['276','040','203','528','056','756','705'] },
+        '250': { name:'法兰西王国',   gov:'君主制',   color:'#3464bd', flag:['#244fa8','#f5d061','tri-v'],  gold:2200, tech:0.46, members:['250'] },
+        '826': { name:'英格兰王国',   gov:'君主制',   color:'#b53a56', flag:['#f4f4f4','#c42b2b','cross'],  gold:2000, tech:0.46, members:['826','372'] },
+        '724': { name:'卡斯提亚王国', gov:'君主制',   color:'#c48235', flag:['#c93838','#e6be4c','tri-h'],  gold:2100, tech:0.45, members:['724'] },
+        '616': { name:'波兰立陶宛',   gov:'联邦',     color:'#ab4572', flag:['#f0f0f0','#c93855','bi-h'],   gold:2100, tech:0.44, members:['616','440','112','804'] },
+        '643': { name:'莫斯科大公国', gov:'大公国',   color:'#46854d', flag:['#3b7a40','#e6e6e6','tri-h'],  gold:1900, tech:0.42, members:['643'] },
+        '818': { name:'马木路克王朝', gov:'苏丹国',   color:'#a8913b', flag:['#c9b038','#2c2c2c','star'],   gold:2000, tech:0.44, members:['818','760','400','376','422','682'] },
+        '364': { name:'帖木儿帝国',   gov:'汗国',     color:'#7848b0', flag:['#5c2e91','#e5b95c','star'],   gold:2100, tech:0.43, members:['364','004','860','795','368'] },
+        '356': { name:'德里苏丹国',   gov:'苏丹国',   color:'#3d916a', flag:['#2d7d59','#f5d061','star'],   gold:2100, tech:0.43, members:['356','586','050'] },
+        '392': { name:'室町幕府',     gov:'幕府',     color:'#c95b6b', flag:['#f4f4f4','#b52222','dot'],    gold:1900, tech:0.44, members:['392'] },
+        '604': { name:'印加帝国',     gov:'帝国',     color:'#b89935', flag:['#c9a538','#b52222','stripe'], gold:1800, tech:0.38, members:['604','218','068','152'] },
+        '484': { name:'阿兹特克帝国', gov:'帝国',     color:'#368a63', flag:['#287a54','#d46326','star'],   gold:1750, tech:0.38, members:['484','320'] }
+      }
     }
   ];
 
-  // ======================== MAP GENERATOR (Deterministic Voronoi Provinces) ========================
-  const MAP_W = 1800;
-  const MAP_H = 1050;
+  // ======================== MAP & WORLD DATA ========================
+  const WORLD_W = 2400;
+  const WORLD_H = 1220;
+  let cachedTopo = null;
+  let baseProvinces = []; // Loaded once from TopoJSON
 
-  function generateWorldMap(seed = 14402026) {
-    const rng = mulberry32(seed);
-    const cols = 14;
-    const rows = 9;
-    const cellW = MAP_W / cols;
-    const cellH = MAP_H / rows;
-    const rawSites = [];
-
-    // Generate organic Eurasian-like landmass mask (continent + western island + southern peninsula)
-    function isLandMask(nx, ny) {
-      // Main continent body
-      const main = Math.hypot((nx - 0.56) * 1.15, (ny - 0.48) * 1.45) < 0.44;
-      // Western Europe peninsula
-      const west = Math.hypot((nx - 0.27) * 1.6, (ny - 0.48) * 1.8) < 0.25;
-      // Iberia
-      const iberia = Math.hypot((nx - 0.17) * 2.3, (ny - 0.62) * 2.5) < 0.17;
-      // British Isles
-      const britain = Math.hypot((nx - 0.22) * 3.1, (ny - 0.24) * 2.8) < 0.14;
-      // Scandinavia
-      const nordic = Math.hypot((nx - 0.46) * 2.1, (ny - 0.17) * 2.5) < 0.16;
-      // Far East extension
-      const east = Math.hypot((nx - 0.83) * 1.7, (ny - 0.56) * 1.8) < 0.23;
-      // Middle East / North Africa
-      const mena = Math.hypot((nx - 0.63) * 1.7, (ny - 0.78) * 2.5) < 0.20;
-      // Mediterranean Sea carve-out
-      const medSea = Math.hypot((nx - 0.42) * 2.1, (ny - 0.72) * 4.2) < 0.21;
-      // Baltic / North Sea carve-out
-      const northSea = Math.hypot((nx - 0.34) * 3.2, (ny - 0.22) * 3.8) < 0.12;
-      return (main || west || iberia || britain || nordic || east || mena) && !medSea && !northSea;
+  function hashColor(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
     }
+    const hue = Math.abs(h) % 360;
+    const sat = 36 + (Math.abs(h >> 8) % 24);
+    const lit = 36 + (Math.abs(h >> 16) % 16);
+    return `hsl(${hue}, ${sat}%, ${lit}%)`;
+  }
 
-    let idCounter = 0;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const x = (c + 0.2 + rng() * 0.6) * cellW;
-        const y = (r + 0.2 + rng() * 0.6) * cellH;
-        const nx = x / MAP_W;
-        const ny = y / MAP_H;
-        if (nx < 0.06 || nx > 0.94 || ny < 0.07 || ny > 0.92) continue;
-        const land = isLandMask(nx, ny);
-        rawSites.push({ id: idCounter++, x, y, land });
+  function makeAutoFlag(iso) {
+    const c1 = hashColor(iso + 'a');
+    const c2 = hashColor(iso + 'b');
+    const pats = ['tri-h','tri-v','bi-h','stripe','star','cross'];
+    const p = pats[Number(iso) % pats.length];
+    return [c1, c2, p];
+  }
+
+  // Pick visual centroid of the largest ring in a Polygon / MultiPolygon so army badges never float in oceans
+  function largestPolygonCentroid(feature, pathGen) {
+    const geom = feature.geometry;
+    if (!geom) return [WORLD_W / 2, WORLD_H / 2];
+    if (geom.type === 'Polygon') {
+      return pathGen.centroid(feature);
+    }
+    if (geom.type === 'MultiPolygon') {
+      let bestArea = -1;
+      let bestFeat = null;
+      for (const coords of geom.coordinates) {
+        const sub = { type: 'Feature', geometry: { type: 'Polygon', coordinates: coords } };
+        const a = pathGen.area(sub);
+        if (a > bestArea) { bestArea = a; bestFeat = sub; }
       }
+      if (bestFeat) return pathGen.centroid(bestFeat);
     }
+    return pathGen.centroid(feature);
+  }
 
-    // Build discrete Voronoi grid for exact polygons & neighbor adjacency
-    const GW = 180;
-    const GH = 105;
-    const scaleX = MAP_W / GW;
-    const scaleY = MAP_H / GH;
-    const grid = new Int16Array(GW * GH);
+  function guessTerrain(lat, lon) {
+    const alat = Math.abs(lat);
+    if (alat > 56) return 'forest';
+    if (lat > 14 && lat < 33 && lon > -15 && lon < 62) return 'desert';
+    if (lat < -18 && lat > -32 && lon > 114 && lon < 142) return 'desert';
+    if ((lat > 27 && lat < 42 && lon > 68 && lon < 102) || (lat > -40 && lat < 5 && lon > -78 && lon < -64)) return 'mountain';
+    if (alat < 12) return 'forest';
+    return ((Math.abs(Math.round(lat * 7 + lon * 13)) % 3) === 0) ? 'hills' : 'plains';
+  }
 
-    for (let gy = 0; gy < GH; gy++) {
-      const py = (gy + 0.5) * scaleY;
-      for (let gx = 0; gx < GW; gx++) {
-        const px = (gx + 0.5) * scaleX;
-        let best = -1;
-        let bestD = Infinity;
-        for (let i = 0; i < rawSites.length; i++) {
-          const dx = px - rawSites[i].x;
-          const dy = py - rawSites[i].y;
-          const d = dx * dx + dy * dy;
-          if (d < bestD) { bestD = d; best = i; }
-        }
-        grid[gy * GW + gx] = best;
-      }
+  async function loadWorldAtlas() {
+    const urls = [
+      'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json',
+      'https://unpkg.com/world-atlas@2/countries-110m.json'
+    ];
+    let topo = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) { topo = await res.json(); break; }
+      } catch (e) { /* try fallback */ }
     }
+    if (!topo) throw new Error('无法下载世界矢量地图数据，请检查网络连接。');
+    cachedTopo = topo;
 
-    // Build exact convex-ish polygon for each land site via half-plane clipping (Voronoi cell)
-    function clipPolygon(poly, px, py, nx, ny) {
-      // Keep points where (pt - p) . n <= 0
-      const out = [];
-      for (let i = 0; i < poly.length; i++) {
-        const a = poly[i];
-        const b = poly[(i + 1) % poly.length];
-        const da = (a[0] - px) * nx + (a[1] - py) * ny;
-        const db = (b[0] - px) * nx + (b[1] - py) * ny;
-        if (da <= 0) out.push(a);
-        if ((da <= 0 && db > 0) || (da > 0 && db <= 0)) {
-          const t = da / (da - db);
-          out.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]);
-        }
-      }
-      return out;
-    }
+    const rawGeoms = topo.objects.countries.geometries;
+    const rawFeatures = topojson.feature(topo, topo.objects.countries).features;
+    const rawNeighbors = topojson.neighbors(rawGeoms);
 
-    const landSites = rawSites.filter(s => s.land);
+    // Filter out Antarctica ("010")
+    const validIndices = [];
     const oldToNew = new Map();
-    landSites.forEach((s, idx) => oldToNew.set(s.id, idx));
+    rawFeatures.forEach((f, idx) => {
+      const iso = String(f.id || '').padStart(3, '0');
+      if (iso === '010') return;
+      oldToNew.set(idx, validIndices.length);
+      validIndices.push(idx);
+    });
 
-    const provinces = landSites.map((s, idx) => {
-      let poly = [
-        [20, 20], [MAP_W - 20, 20], [MAP_W - 20, MAP_H - 20], [20, MAP_H - 20]
-      ];
-      for (let j = 0; j < rawSites.length; j++) {
-        const o = rawSites[j];
-        if (o.id === s.id) continue;
-        const mx = (s.x + o.x) * 0.5;
-        const my = (s.y + o.y) * 0.5;
-        const nx = o.x - s.x;
-        const ny = o.y - s.y;
-        poly = clipPolygon(poly, mx, my, nx, ny);
-        if (poly.length < 3) break;
-      }
-      // Compute polygon centroid for crisp label/army placement
-      let cx = 0, cy = 0;
-      for (const p of poly) { cx += p[0]; cy += p[1]; }
-      cx = poly.length ? cx / poly.length : s.x;
-      cy = poly.length ? cy / poly.length : s.y;
+    const projection = d3.geoEquirectangular()
+      .scale(WORLD_W / (2 * Math.PI))
+      .translate([WORLD_W / 2, WORLD_H * 0.56]);
 
-      // Determine terrain from geography + rng
-      const r = rng();
-      let terrain = 'plains';
-      if (cy > MAP_H * 0.72 && cx > MAP_W * 0.5) terrain = r < 0.65 ? 'desert' : 'hills';
-      else if (cy < MAP_H * 0.30) terrain = r < 0.55 ? 'forest' : 'hills';
-      else if (r < 0.18) terrain = 'mountain';
-      else if (r < 0.38) terrain = 'hills';
-      else if (r < 0.58) terrain = 'forest';
+    const pathGen = d3.geoPath(projection);
+    const isoToIdx = new Map();
 
-      const basePop = Math.round((14000 + rng() * 34000) * TERRAIN_INFO[terrain].growth);
-      const baseEcon = Math.round((450 + rng() * 1150) * (terrain === 'plains' ? 1.2 : 0.95));
+    baseProvinces = validIndices.map((origIdx, newIdx) => {
+      const feat = rawFeatures[origIdx];
+      const iso = String(feat.id || (900 + newIdx)).padStart(3, '0');
+      isoToIdx.set(iso, newIdx);
+
+      const dStr = pathGen(feat);
+      const path2d = dStr ? new Path2D(dStr) : null;
+      const bounds = pathGen.bounds(feat);
+      const area = pathGen.area(feat);
+      let [cx, cy] = largestPolygonCentroid(feat, pathGen);
+      if (!Number.isFinite(cx) || !Number.isFinite(cy)) { cx = WORLD_W / 2; cy = WORLD_H / 2; }
+
+      const geoCenter = d3.geoCentroid(feat);
+      const terrain = guessTerrain(geoCenter[1] || 0, geoCenter[0] || 0);
+      const cnName = CN_NAMES[iso] || (feat.properties && feat.properties.name) || `地区 ${iso}`;
 
       return {
-        id: idx,
-        rawId: s.id,
-        name: PROVINCE_NAMES[idx % PROVINCE_NAMES.length] + (idx >= PROVINCE_NAMES.length ? '州' : ''),
+        id: newIdx,
+        iso,
+        name: cnName,
         cx, cy,
-        poly,
-        neighbors: new Set(),
-        seaLinks: new Set(),
-        coastal: false,
+        bounds,
+        area,
+        path2d,
         terrain,
-        owner: 0,
-        coreOwner: 0,
-        isCapital: false,
-        army: 0,
-        pop: basePop,
-        econ: baseEcon,
-        stability: 100,
-        buildings: { farm: 0, workshop: 0, fort: 0, supply: 0 }
+        neighbors: new Set(),
+        seaLinks: new Set()
       };
     });
 
-    // Detect land adjacency & coastal status from grid
-    for (let gy = 0; gy < GH; gy++) {
-      for (let gx = 0; gx < GW; gx++) {
-        const aRaw = grid[gy * GW + gx];
-        const aIdx = oldToNew.get(aRaw);
-        if (aIdx === undefined) continue;
-        const dirs = [[1,0],[0,1],[-1,0],[0,-1]];
-        for (const [dx, dy] of dirs) {
-          const nx = gx + dx, ny = gy + dy;
-          if (nx < 0 || nx >= GW || ny < 0 || ny >= GH) {
-            provinces[aIdx].coastal = true;
-            continue;
-          }
-          const bRaw = grid[ny * GW + nx];
-          if (bRaw === aRaw) continue;
-          const bIdx = oldToNew.get(bRaw);
-          if (bIdx === undefined) {
-            provinces[aIdx].coastal = true;
-          } else {
-            provinces[aIdx].neighbors.add(bIdx);
-            provinces[bIdx].neighbors.add(aIdx);
-          }
+    // Land neighbors from TopoJSON shared arcs
+    validIndices.forEach((origIdx, newIdx) => {
+      for (const nbOrig of rawNeighbors[origIdx]) {
+        const nbNew = oldToNew.get(nbOrig);
+        if (nbNew !== undefined && nbNew !== newIdx) {
+          baseProvinces[newIdx].neighbors.add(nbNew);
+          baseProvinces[nbNew].neighbors.add(newIdx);
         }
+      }
+    });
+
+    // Add curated maritime sea lanes
+    for (const [isoA, isoB] of SEA_LANES_ISO) {
+      const a = isoToIdx.get(isoA);
+      const b = isoToIdx.get(isoB);
+      if (a !== undefined && b !== undefined && a !== b) {
+        baseProvinces[a].seaLinks.add(b);
+        baseProvinces[b].seaLinks.add(a);
+        baseProvinces[a].neighbors.add(b);
+        baseProvinces[b].neighbors.add(a);
       }
     }
 
-    // Add maritime sea lanes between nearby coastal provinces that aren't land-adjacent (e.g. Britain <-> Europe, Mediterranean crossings)
-    const coastalProvs = provinces.filter(p => p.coastal);
-    for (let i = 0; i < coastalProvs.length; i++) {
-      for (let j = i + 1; j < coastalProvs.length; j++) {
-        const a = coastalProvs[i];
-        const b = coastalProvs[j];
-        if (a.neighbors.has(b.id)) continue;
-        const dist = Math.hypot(a.cx - b.cx, a.cy - b.cy);
-        if (dist < 260 && a.seaLinks.size < 2 && b.seaLinks.size < 2) {
-          a.seaLinks.add(b.id);
-          b.seaLinks.add(a.id);
-          a.neighbors.add(b.id);
-          b.neighbors.add(a.id);
+    // Connect any remaining isolated island to nearest neighbor so every single island is reachable!
+    for (const p of baseProvinces) {
+      if (p.neighbors.size === 0) {
+        let best = -1, bestD = Infinity;
+        for (const o of baseProvinces) {
+          if (o.id === p.id) continue;
+          const d = Math.hypot(p.cx - o.cx, p.cy - o.cy);
+          if (d < bestD) { bestD = d; best = o.id; }
+        }
+        if (best !== -1) {
+          p.seaLinks.add(best);
+          baseProvinces[best].seaLinks.add(p.id);
+          p.neighbors.add(best);
+          baseProvinces[best].neighbors.add(p.id);
         }
       }
     }
-
-    // Ensure graph connectivity (connect any isolated island to closest coastal province)
-    const visited = new Set([0]);
-    const queue = [0];
-    while (queue.length) {
-      const cur = queue.shift();
-      for (const nb of provinces[cur].neighbors) {
-        if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
-      }
-    }
-    for (const p of provinces) {
-      if (!visited.has(p.id)) {
-        let closest = -1, bestD = Infinity;
-        for (const vId of visited) {
-          const d = Math.hypot(p.cx - provinces[vId].cx, p.cy - provinces[vId].cy);
-          if (d < bestD) { bestD = d; closest = vId; }
-        }
-        if (closest !== -1) {
-          p.seaLinks.add(closest);
-          provinces[closest].seaLinks.add(p.id);
-          p.neighbors.add(closest);
-          provinces[closest].neighbors.add(p.id);
-          visited.add(p.id);
-        }
-      }
-    }
-
-    return provinces;
   }
 
   // ======================== GAME STATE ========================
   const state = {
     scenario: SCENARIOS[0],
     selectedScenarioIdx: 0,
-    selectedStartCivId: 1,
+    selectedStartCivId: '156',
     provinces: [],
-    civs: new Map(),
-    playerCivId: 1,
+    civs: new Map(), // key: civId (string ISO)
+    playerCivId: '156',
     turn: 1,
-    year: 1440,
-    month: 5,
+    year: 2026,
+    month: 1,
     mapMode: 'political',
     selectedProvId: null,
     hoveredProvId: null,
     mode: 'normal', // 'normal' | 'move' | 'editor' | 'timelapse'
     moveSourceId: null,
-    pendingOrders: [], // { from, to, amount, civId }
-    relations: new Map(), // key "a-b" (a<b) -> { score, war, alliance, nap, trade, truceUntil, warScoreA }
-    history: [], // array of { year, month, owners: number[] }
-    editorPaintCivId: 1,
+    pendingOrders: [],
+    relations: new Map(),
+    history: [],
+    editorPaintCivId: '156',
     timelapseTimer: null,
     timelapseIndex: 0,
-    animations: [], // floating texts / battle flashes
-    cam: { x: MAP_W * 0.5, y: MAP_H * 0.5, zoom: 0.72 },
-    isRunning: false
+    animations: [],
+    cam: { x: WORLD_W * 0.65, y: WORLD_H * 0.42, zoom: 0.72 }
   };
 
-  // ======================== RELATIONS HELPERS ========================
-  function relKey(a, b) {
-    return a < b ? `${a}-${b}` : `${b}-${a}`;
-  }
-
+  function relKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
   function getRel(a, b) {
     if (a === b) return { score: 100, war: false, alliance: true, nap: false, trade: false, truceUntil: 0, warScoreA: 0 };
     const k = relKey(a, b);
@@ -1357,69 +1190,60 @@
     }
     return state.relations.get(k);
   }
-
-  function getWarScore(civA, civB) {
-    const rel = getRel(civA, civB);
-    return civA < civB ? rel.warScoreA : -rel.warScoreA;
+  function getWarScore(a, b) {
+    const r = getRel(a, b);
+    return a < b ? r.warScoreA : -r.warScoreA;
+  }
+  function addWarScore(winner, loser, delta) {
+    const r = getRel(winner, loser);
+    if (winner < loser) r.warScoreA = Math.max(-100, Math.min(100, r.warScoreA + delta));
+    else r.warScoreA = Math.max(-100, Math.min(100, r.warScoreA - delta));
   }
 
-  function addWarScore(winnerId, loserId, delta) {
-    const rel = getRel(winnerId, loserId);
-    if (winnerId < loserId) rel.warScoreA = Math.max(-100, Math.min(100, rel.warScoreA + delta));
-    else rel.warScoreA = Math.max(-100, Math.min(100, rel.warScoreA - delta));
-  }
-
-  // ======================== FLAG SVG HELPER ========================
   function flagSVG(flagArr) {
     const [c1, c2, pat] = flagArr || ['#444', '#888', 'bi-h'];
     if (pat === 'cross') {
       return `<svg viewBox="0 0 36 24" width="100%" height="100%" preserveAspectRatio="none">
-        <rect width="36" height="24" fill="${c1}"/>
-        <rect x="14" width="8" height="24" fill="${c2}"/>
-        <rect y="8" width="36" height="8" fill="${c2}"/>
+        <rect width="36" height="24" fill="${c1}"/><rect x="14" width="8" height="24" fill="${c2}"/><rect y="8" width="36" height="8" fill="${c2}"/>
       </svg>`;
     }
     if (pat === 'tri-v') {
       return `<svg viewBox="0 0 36 24" width="100%" height="100%" preserveAspectRatio="none">
-        <rect width="12" height="24" fill="${c1}"/>
-        <rect x="12" width="12" height="24" fill="#f5f5f5"/>
-        <rect x="24" width="12" height="24" fill="${c2}"/>
+        <rect width="12" height="24" fill="${c1}"/><rect x="12" width="12" height="24" fill="#f5f5f5"/><rect x="24" width="12" height="24" fill="${c2}"/>
       </svg>`;
     }
     if (pat === 'tri-h') {
       return `<svg viewBox="0 0 36 24" width="100%" height="100%" preserveAspectRatio="none">
-        <rect width="36" height="8" fill="${c1}"/>
-        <rect y="8" width="36" height="8" fill="${c2}"/>
-        <rect y="16" width="36" height="8" fill="${c1}"/>
+        <rect width="36" height="8" fill="${c1}"/><rect y="8" width="36" height="8" fill="${c2}"/><rect y="16" width="36" height="8" fill="${c1}"/>
       </svg>`;
     }
     if (pat === 'bi-h') {
       return `<svg viewBox="0 0 36 24" width="100%" height="100%" preserveAspectRatio="none">
-        <rect width="36" height="12" fill="${c1}"/>
-        <rect y="12" width="36" height="12" fill="${c2}"/>
+        <rect width="36" height="12" fill="${c1}"/><rect y="12" width="36" height="12" fill="${c2}"/>
+      </svg>`;
+    }
+    if (pat === 'dot') {
+      return `<svg viewBox="0 0 36 24" width="100%" height="100%" preserveAspectRatio="none">
+        <rect width="36" height="24" fill="${c1}"/><circle cx="18" cy="12" r="6" fill="${c2}"/>
       </svg>`;
     }
     if (pat === 'stripe') {
       return `<svg viewBox="0 0 36 24" width="100%" height="100%" preserveAspectRatio="none">
-        <rect width="36" height="24" fill="${c1}"/>
-        <rect y="5" width="36" height="4" fill="${c2}"/>
-        <rect y="15" width="36" height="4" fill="${c2}"/>
+        <rect width="36" height="24" fill="${c1}"/><rect y="5" width="36" height="4" fill="${c2}"/><rect y="15" width="36" height="4" fill="${c2}"/>
       </svg>`;
     }
-    // star
     return `<svg viewBox="0 0 36 24" width="100%" height="100%" preserveAspectRatio="none">
       <rect width="36" height="24" fill="${c1}"/>
       <polygon points="18,4 20.4,10.2 27,10.2 21.7,14.1 23.6,20.3 18,16.5 12.4,20.3 14.3,14.1 9,10.2 15.6,10.2" fill="${c2}"/>
     </svg>`;
   }
 
-  // ======================== SCENARIO INITIALIZATION ========================
-  function initScenario(scenarioObj, playerCivId, keepCurrentMap = false) {
+  // ======================== SCENARIO INIT ========================
+  function initScenario(scenarioObj, playerCivId, keepCustomOwners = false) {
     state.scenario = scenarioObj;
     state.year = scenarioObj.year;
     state.month = scenarioObj.month;
     state.turn = 1;
-    state.playerCivId = playerCivId;
     state.selectedProvId = null;
     state.pendingOrders = [];
     state.relations.clear();
@@ -1428,100 +1252,99 @@
     state.mode = 'normal';
     state.moveSourceId = null;
 
-    if (!keepCurrentMap) {
-      state.provinces = generateWorldMap(14402026);
+    // Build member -> empire map if scenario has historical empires
+    const memberToEmpire = new Map();
+    if (scenarioObj.empires) {
+      for (const [empId, emp] of Object.entries(scenarioObj.empires)) {
+        for (const mIso of emp.members) memberToEmpire.set(mIso, empId);
+      }
     }
 
+    const oldOwners = keepCustomOwners ? state.provinces.map(p => p.owner) : null;
     state.civs.clear();
-    for (const c of scenarioObj.civs) {
-      state.civs.set(c.id, {
-        id: c.id,
-        name: c.name,
-        gov: c.gov,
-        color: c.color,
-        flag: c.flag,
-        gold: c.gold,
-        tech: c.tech,
+
+    // Create provinces
+    state.provinces = baseProvinces.map((bp, idx) => {
+      const ownerId = keepCustomOwners
+        ? oldOwners[idx]
+        : (memberToEmpire.get(bp.iso) || bp.iso);
+
+      const modInfo = MAJOR_MODERN_CIVS[bp.iso];
+      const scaleMult = scenarioObj.id === '1440' ? 0.35 : (scenarioObj.id === '1936' ? 0.65 : 1.0);
+      const basePop = modInfo
+        ? Math.round(modInfo.pop * scaleMult)
+        : Math.round((14000 + Math.min(180000, bp.area * 22)) * scaleMult);
+      const baseEcon = modInfo
+        ? Math.round(modInfo.econ * scaleMult)
+        : Math.round((420 + Math.min(1200, bp.area * 0.45)) * scaleMult);
+
+      const startArmy = Math.round(Math.max(180, baseEcon * (scenarioObj.id === '1936' ? 0.85 : 0.55)));
+
+      return {
+        ...bp,
+        owner: ownerId,
+        coreOwner: ownerId,
+        isCapital: false,
+        army: startArmy,
+        pop: Math.max(4000, basePop),
+        econ: Math.max(220, baseEcon),
+        stability: 100,
+        buildings: { farm: 0, workshop: 0, fort: 0, supply: 0, uni: 0, port: 0 }
+      };
+    });
+
+    // Create civ objects for every active owner
+    for (const p of state.provinces) {
+      if (state.civs.has(p.owner)) continue;
+      const empPreset = scenarioObj.empires && scenarioObj.empires[p.owner];
+      const modPreset = MAJOR_MODERN_CIVS[p.owner];
+      const base = empPreset || modPreset;
+      state.civs.set(p.owner, {
+        id: p.owner,
+        name: base ? base.name : p.name,
+        gov: base ? base.gov : (scenarioObj.id === '1440' ? '地方政权' : '共和国'),
+        color: base ? base.color : hashColor(p.owner),
+        flag: base ? base.flag : makeAutoFlag(p.owner),
+        gold: base ? base.gold : (scenarioObj.id === '1440' ? 950 : 1400),
+        tech: base ? base.tech : (scenarioObj.id === '1440' ? 0.40 : (scenarioObj.id === '1936' ? 0.60 : 0.78)),
+        techPoints: 2,
+        perks: { pop: 0, econ: 0, tax: 0, upkeep: 0, atk: 0, def: 0 },
         mp: 4.5,
         maxMp: 4.5,
         dp: 3.0,
-        taxRate: 12,      // % (5 - 28)
-        goodsRate: 8,     // % (0 - 25)
-        researchRate: 10, // % (0 - 30)
+        taxRate: 12,
+        goodsRate: 8,
+        researchRate: 10,
         vassalOf: null,
         alive: true
       });
     }
 
-    if (!keepCurrentMap) {
-      // Assign provinces to nearest civ seed region
-      const civList = scenarioObj.civs;
-      for (const p of state.provinces) {
-        let bestId = civList[0].id;
-        let bestD = Infinity;
-        for (const c of civList) {
-          const sx = c.region[0] * MAP_W;
-          const sy = c.region[1] * MAP_H;
-          const d = Math.hypot(p.cx - sx, p.cy - sy);
-          if (d < bestD) { bestD = d; bestId = c.id; }
-        }
-        p.owner = bestId;
-        p.coreOwner = bestId;
-        p.isCapital = false;
-        p.stability = 100;
-        p.buildings = { farm: 0, workshop: 0, fort: 0, supply: 0 };
-        p.army = Math.round(280 + (scenarioObj.id === '1936' ? 420 : 120) + (p.econ * 0.25));
-      }
-      assignCapitals();
-    } else {
-      // Refresh armies & capitals on custom-edited map
-      for (const p of state.provinces) {
-        p.coreOwner = p.owner;
-        p.isCapital = false;
-        p.stability = 100;
-        p.army = Math.round(350 + p.econ * 0.25);
-      }
-      assignCapitals();
-    }
-
-    // Seed initial diplomatic relations
-    const ids = Array.from(state.civs.keys());
-    const rng = mulberry32(scenarioObj.year * 997);
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const rel = getRel(ids[i], ids[j]);
-        rel.score = Math.round(-25 + rng() * 55);
-      }
-    }
-
-    recordHistorySnapshot();
-    centerCameraOnCiv(playerCivId);
-    clearNews();
-    pushNews(`你在 ${state.year} 年接掌了 ${state.civs.get(playerCivId).name}，運籌帷幄，開創霸業！`);
-    updateAllUI();
-  }
-
-  function assignCapitals() {
+    // Assign capitals
     for (const c of state.civs.values()) {
       const owned = state.provinces.filter(p => p.owner === c.id);
-      if (owned.length === 0) { c.alive = false; continue; }
-      c.alive = true;
-      // Pick highest-economy province as capital
-      owned.sort((a, b) => b.econ - a.econ);
-      owned[0].isCapital = true;
-      owned[0].army = Math.round(owned[0].army * 1.45);
-      owned[0].buildings.fort = 1;
+      if (!owned.length) { c.alive = false; continue; }
+      const home = owned.find(p => p.iso === c.id) || owned.sort((a, b) => b.econ - a.econ)[0];
+      home.isCapital = true;
+      home.army = Math.round(home.army * 1.45);
+      home.buildings.fort = 1;
     }
+
+    state.playerCivId = state.civs.has(playerCivId) ? playerCivId : Array.from(state.civs.keys())[0];
+    recordHistorySnapshot();
+    centerCameraOnCiv(state.playerCivId);
+    clearNews();
+    pushNews(`你在 ${state.year} 年执掌 ${state.civs.get(state.playerCivId).name}，真实世界大战略现已开启！`);
+    updateAllUI();
   }
 
   function centerCameraOnCiv(civId) {
     const owned = state.provinces.filter(p => p.owner === civId);
     if (!owned.length) return;
-    let sx = 0, sy = 0;
-    for (const p of owned) { sx += p.cx; sy += p.cy; }
-    state.cam.x = sx / owned.length;
-    state.cam.y = sy / owned.length;
-    state.cam.zoom = Math.min(1.05, Math.max(0.65, canvas.clientWidth / 1350));
+    const cap = owned.find(p => p.isCapital) || owned[0];
+    state.cam.x = cap.cx;
+    state.cam.y = cap.cy;
+    state.cam.zoom = Math.min(1.6, Math.max(0.85, canvas.clientWidth / 1200));
   }
 
   function recordHistorySnapshot() {
@@ -1532,48 +1355,42 @@
     });
   }
 
-  // ======================== ECONOMY & STATS CALCULATIONS ========================
+  // ======================== STATS & ECONOMY ========================
   function getCivStats(civId) {
     const civ = state.civs.get(civId);
     if (!civ) return { provCount: 0, pop: 0, econ: 0, army: 0, gross: 0, upkeep: 0, goodsCost: 0, researchCost: 0, net: 0, vassalTax: 0 };
     const owned = state.provinces.filter(p => p.owner === civId);
-    let pop = 0, econ = 0, army = 0, gross = 0, upkeep = 0;
+    let pop = 0, econ = 0, army = 0, gross = 0, upkeep = 0, uniBonus = 0;
+
+    const taxPerk = 1 + civ.perks.tax * 0.05;
+    const upkeepPerk = Math.max(0.55, 1 - civ.perks.upkeep * 0.04);
 
     for (const p of owned) {
       pop += p.pop;
       econ += p.econ;
       army += p.army;
       const stabMult = 0.35 + 0.65 * (p.stability / 100);
-      const wsMult = 1 + p.buildings.workshop * 0.22;
-      const taxIncome = (p.econ * (civ.taxRate / 100) * 1.15 + p.pop * 0.0045) * stabMult * wsMult;
-      gross += taxIncome;
+      const wsMult = 1 + p.buildings.workshop * 0.24;
+      gross += (p.econ * (civ.taxRate / 100) * 1.1 + p.pop * 0.0012) * stabMult * wsMult * taxPerk + p.buildings.port * 35;
       const supMult = Math.max(0.4, 1 - p.buildings.supply * 0.30);
-      upkeep += p.army * 0.095 * supMult;
+      upkeep += p.army * 0.085 * supMult * upkeepPerk;
+      uniBonus += p.buildings.uni * 0.20;
     }
 
-    // Add pending marching troops owned by this civ
     for (const o of state.pendingOrders) {
       if (o.civId === civId) army += o.amount;
     }
 
-    // Trade bonuses
-    let tradeBonus = 0;
+    // Trade deals
     for (const other of state.civs.values()) {
-      if (other.id !== civId && other.alive && getRel(civId, other.id).trade) {
-        tradeBonus += 45;
-      }
+      if (other.id !== civId && other.alive && getRel(civId, other.id).trade) gross += 55;
     }
-    gross += tradeBonus;
 
-    // Vassal tribute
     let vassalTax = 0;
-    if (civ.vassalOf && state.civs.get(civ.vassalOf)?.alive) {
-      vassalTax = -gross * 0.15;
-    } else {
+    if (civ.vassalOf && state.civs.get(civ.vassalOf)?.alive) vassalTax = -gross * 0.15;
+    else {
       for (const other of state.civs.values()) {
-        if (other.alive && other.vassalOf === civId) {
-          vassalTax += 90;
-        }
+        if (other.alive && other.vassalOf === civId) vassalTax += 110;
       }
     }
 
@@ -1591,6 +1408,7 @@
       goodsCost: Math.round(goodsCost),
       researchCost: Math.round(researchCost),
       vassalTax: Math.round(vassalTax),
+      uniBonus,
       net
     };
   }
@@ -1600,7 +1418,7 @@
     for (const c of state.civs.values()) {
       const st = getCivStats(c.id);
       if (st.provCount === 0) continue;
-      const score = Math.round(st.provCount * 120 + st.econ * 0.15 + st.pop * 0.004 + st.army * 0.08 + c.tech * 400);
+      const score = Math.round(st.provCount * 150 + st.econ * 0.22 + st.pop * 0.0008 + st.army * 0.08 + c.tech * 420);
       arr.push({ civ: c, stats: st, score });
     }
     arr.sort((a, b) => b.score - a.score);
@@ -1613,83 +1431,67 @@
     Sound.turn();
     exitSpecialMode();
 
-    // 1. AI plans its moves and diplomacy
     runAITurns();
-
-    // 2. Execute all pending orders (Player + AI)
     resolveAllOrders();
 
-    // 3. Economy, population growth, research, assimilation & rebellions
     for (const c of state.civs.values()) {
       const st = getCivStats(c.id);
-      if (st.provCount === 0) {
-        c.alive = false;
-        continue;
-      }
+      if (st.provCount === 0) { c.alive = false; continue; }
       c.alive = true;
-      c.gold = Math.max(-500, Math.round(c.gold + st.net));
-      c.maxMp = Math.min(8.0, +(3.5 + st.provCount * 0.18).toFixed(1));
+      c.gold = Math.max(-800, Math.round(c.gold + st.net));
+      c.maxMp = Math.min(9.0, +(3.8 + st.provCount * 0.16).toFixed(1));
       c.mp = c.maxMp;
-      c.dp = Math.min(8.0, +(c.dp + 0.8).toFixed(1));
+      c.dp = Math.min(9.0, +(c.dp + 0.8).toFixed(1));
 
-      // Tech progression
-      const techGain = (st.researchCost / Math.max(400, st.econ * 0.8)) * 0.018;
-      c.tech = +(Math.min(2.5, c.tech + techGain)).toFixed(3);
+      // Tech progression & Tech Points
+      const prevFloor = Math.floor(c.tech * 10);
+      const techGain = (st.researchCost / Math.max(500, st.econ * 0.9)) * 0.022 * (1 + st.uniBonus);
+      c.tech = +(Math.min(3.0, c.tech + techGain)).toFixed(3);
+      if (Math.floor(c.tech * 10) > prevFloor) {
+        c.techPoints += 1;
+        if (c.id === state.playerCivId) pushNews(`🔬 科技突破至 ${c.tech.toFixed(2)}，获得 +1 科技加点！`);
+      }
 
-      // Update each owned province
       const owned = state.provinces.filter(p => p.owner === c.id);
-      // Ensure capital exists
       if (!owned.some(p => p.isCapital)) {
         owned.sort((a, b) => b.econ - a.econ);
         owned[0].isCapital = true;
       }
 
+      const popPerk = 1 + c.perks.pop * 0.04;
+      const econPerk = 1 + c.perks.econ * 0.04;
       for (const p of owned) {
         const farmMult = 1 + p.buildings.farm * 0.25;
         const goodsBoost = 1 + c.goodsRate * 0.025;
-        const taxPenalty = c.taxRate > 16 ? (c.taxRate - 16) * 0.04 : 0;
-        const growthRate = Math.max(-0.01, (0.009 * TERRAIN_INFO[p.terrain].growth * farmMult * goodsBoost) - taxPenalty * 0.02);
-        p.pop = Math.max(1500, Math.round(p.pop * (1 + growthRate)));
-        p.econ = Math.max(150, Math.round(p.econ * (1 + 0.004 * goodsBoost)));
+        const taxPen = c.taxRate > 16 ? (c.taxRate - 16) * 0.04 : 0;
+        const gr = Math.max(-0.01, (0.008 * TERRAIN_INFO[p.terrain].growth * farmMult * goodsBoost * popPerk) - taxPen * 0.02);
+        p.pop = Math.max(2000, Math.round(p.pop * (1 + gr)));
+        p.econ = Math.max(180, Math.round(p.econ * (1 + 0.004 * goodsBoost * econPerk)));
 
-        // Stability drift & rebellion risk
-        if (c.taxRate > 18) {
-          p.stability = Math.max(15, p.stability - (c.taxRate - 17) * 1.4);
-        } else if (p.stability < 100 && p.coreOwner === c.id) {
-          p.stability = Math.min(100, p.stability + 2);
-        }
+        if (c.taxRate > 18) p.stability = Math.max(15, p.stability - (c.taxRate - 17) * 1.4);
+        else if (p.stability < 100 && p.coreOwner === c.id) p.stability = Math.min(100, p.stability + 2);
 
-        // Unassimilated rebellion chance
-        if (p.stability < 45 && Math.random() < (45 - p.stability) * 0.006) {
-          const rebels = Math.round(p.pop * 0.035);
+        if (p.stability < 45 && Math.random() < (45 - p.stability) * 0.005) {
+          const rebels = Math.round(Math.min(p.pop * 0.02, 2400));
           if (rebels > p.army) {
-            p.army = Math.max(120, rebels - p.army);
+            p.army = Math.max(150, rebels - p.army);
             p.stability = 65;
             if (p.coreOwner && p.coreOwner !== c.id && state.civs.has(p.coreOwner)) {
               p.owner = p.coreOwner;
               state.civs.get(p.coreOwner).alive = true;
-              pushNews(`🔥 ${p.name} 爆發起義，脫離 ${c.name} 重歸 ${state.civs.get(p.coreOwner).name}！`, 'war');
-            } else {
-              pushNews(`🔥 ${p.name} 爆發農民起義，守軍損失慘重！`, 'war');
+              if (c.id === state.playerCivId) pushNews(`🔥 ${p.name} 爆发独立起义，脱离了你的统治！`, 'war');
             }
           } else {
-            p.army = Math.max(0, p.army - Math.round(rebels * 0.6));
+            p.army = Math.max(0, p.army - Math.round(rebels * 0.55));
             p.stability = Math.min(100, p.stability + 15);
-            if (c.id === state.playerCivId) {
-              pushNews(`⚔️ ${p.name} 發生小規模叛亂，已被駐軍鎮壓。`);
-            }
           }
         }
       }
     }
 
-    // 4. Advance Date
     state.turn++;
     state.month += state.scenario.stepMonths;
-    while (state.month > 12) {
-      state.month -= 12;
-      state.year++;
-    }
+    while (state.month > 12) { state.month -= 12; state.year++; }
 
     recordHistorySnapshot();
     checkVictoryOrDefeat();
@@ -1702,53 +1504,49 @@
 
     for (const o of orders) {
       const target = state.provinces[o.to];
-      const attackerCiv = state.civs.get(o.civId);
-      if (!target || !attackerCiv) continue;
+      const atkCiv = state.civs.get(o.civId);
+      if (!target || !atkCiv) continue;
 
       if (target.owner === o.civId) {
-        // Friendly reinforcement
         target.army += o.amount;
       } else {
-        const defenderCiv = state.civs.get(target.owner);
+        const defCiv = state.civs.get(target.owner);
         const rel = getRel(o.civId, target.owner);
-        // Auto-declare war if marching into hostile territory
-        if (!rel.war) {
-          declareWar(o.civId, target.owner, true);
-        }
+        if (!rel.war) declareWar(o.civId, target.owner, true);
 
-        // Combat Formula: tech, terrain defense, fort defense
-        const atkTech = 1 + attackerCiv.tech * 0.45;
-        const defTech = 1 + (defenderCiv ? defenderCiv.tech * 0.45 : 0.2);
+        const atkMult = (1 + atkCiv.tech * 0.45) * (1 + atkCiv.perks.atk * 0.05);
+        const defBase = defCiv ? (1 + defCiv.tech * 0.45) * (1 + defCiv.perks.def * 0.05) : 1.1;
         const terrainDef = TERRAIN_INFO[target.terrain].def;
         const fortDef = target.buildings.fort * 0.35;
-        const defMult = defTech * (1 + terrainDef + fortDef);
+        const defMult = defBase * (1 + terrainDef + fortDef);
 
-        const atkPower = o.amount * atkTech * (0.94 + Math.random() * 0.12);
-        const defPower = target.army * defMult * (0.94 + Math.random() * 0.12);
+        const atkPower = o.amount * atkMult * (0.93 + Math.random() * 0.14);
+        const defPower = target.army * defMult * (0.93 + Math.random() * 0.14);
 
-        Sound.battle();
+        if (o.civId === state.playerCivId || target.owner === state.playerCivId) Sound.battle();
+
         if (atkPower > defPower) {
           const ratio = defPower / Math.max(1, atkPower);
-          const survivors = Math.max(1, Math.round(o.amount * (1 - ratio * 0.82)));
+          const survivors = Math.max(1, Math.round(o.amount * (1 - ratio * 0.80)));
           const prevOwner = target.owner;
-          const wasCapital = target.isCapital;
+          const wasCap = target.isCapital;
           target.owner = o.civId;
           target.army = survivors;
           target.isCapital = false;
           target.stability = Math.max(30, Math.round(target.stability * 0.55));
-          addWarScore(o.civId, prevOwner, wasCapital ? 28 : 14);
-          spawnFloatText(target.cx, target.cy, `占領! 餘 ${survivors}`, '#4ade80');
+          addWarScore(o.civId, prevOwner, wasCap ? 30 : 15);
+          spawnFloatText(target.cx, target.cy, `占领! 余 ${survivors}`, '#4ade80');
           if (o.civId === state.playerCivId || prevOwner === state.playerCivId) {
-            pushNews(`⚔️ ${attackerCiv.name} 攻克了 ${defenderCiv.name} 的 ${target.name}！`, 'war');
+            pushNews(`⚔️ ${atkCiv.name} 攻占了 ${defCiv.name} 的 ${target.name}！`, 'war');
           }
         } else {
           const ratio = atkPower / Math.max(1, defPower);
-          const survivors = Math.max(1, Math.round(target.army * (1 - ratio * 0.80)));
+          const survivors = Math.max(1, Math.round(target.army * (1 - ratio * 0.78)));
           target.army = survivors;
           addWarScore(target.owner, o.civId, 8);
-          spawnFloatText(target.cx, target.cy, `擊退! 守軍 ${survivors}`, '#f87171');
+          spawnFloatText(target.cx, target.cy, `击退! 守军 ${survivors}`, '#f87171');
           if (o.civId === state.playerCivId || target.owner === state.playerCivId) {
-            pushNews(`🛡️ ${defenderCiv.name} 在 ${target.name} 成功擊退了 ${attackerCiv.name} 的進攻。`);
+            pushNews(`🛡️ ${defCiv.name} 在 ${target.name} 击退了 ${atkCiv.name} 的进攻。`);
           }
         }
       }
@@ -1756,156 +1554,118 @@
   }
 
   function runAITurns() {
-    for (const c of state.civs.values()) {
-      if (c.id === state.playerCivId || !c.alive) continue;
+    // Only simulate active AI decisions efficiently across 175 countries
+    const aliveCivs = Array.from(state.civs.values()).filter(c => c.alive && c.id !== state.playerCivId);
+    for (const c of aliveCivs) {
       const owned = state.provinces.filter(p => p.owner === c.id);
       if (!owned.length) continue;
 
       const atWarWith = [];
-      for (const other of state.civs.values()) {
-        if (other.id !== c.id && other.alive && getRel(c.id, other.id).war) {
-          atWarWith.push(other.id);
+      for (const p of owned) {
+        for (const nbId of p.neighbors) {
+          const nbO = state.provinces[nbId].owner;
+          if (nbO !== c.id && getRel(c.id, nbO).war && !atWarWith.includes(nbO)) atWarWith.push(nbO);
         }
       }
 
-      // Check if AI wants to declare war on a weaker neighbor
-      if (atWarWith.length === 0 && c.gold > 700 && Math.random() < 0.08) {
-        const neighborCivs = new Set();
+      // Occasional AI war declaration on weaker neighbor
+      if (atWarWith.length === 0 && c.gold > 800 && Math.random() < 0.018) {
+        const nbOwners = new Set();
         for (const p of owned) {
           for (const nbId of p.neighbors) {
-            const nbOwner = state.provinces[nbId].owner;
-            if (nbOwner !== c.id) neighborCivs.add(nbOwner);
+            const nbO = state.provinces[nbId].owner;
+            if (nbO !== c.id) nbOwners.add(nbO);
           }
         }
-        const myStats = getCivStats(c.id);
-        for (const nbCivId of neighborCivs) {
+        const mySt = getCivStats(c.id);
+        for (const nbCivId of nbOwners) {
           const rel = getRel(c.id, nbCivId);
           if (rel.alliance || rel.nap || rel.truceUntil > state.turn) continue;
-          const nbStats = getCivStats(nbCivId);
-          if (myStats.army > nbStats.army * 1.18 && rel.score < 25) {
-            declareWar(c.id, nbCivId, false);
+          const nbSt = getCivStats(nbCivId);
+          if (mySt.army > nbSt.army * 1.25 && rel.score < 20) {
+            declareWar(c.id, nbCivId, nbCivId !== state.playerCivId);
             atWarWith.push(nbCivId);
             break;
           }
         }
       }
 
-      // AI Recruiting on border provinces
-      const borderProvs = owned.filter(p =>
-        Array.from(p.neighbors).some(n => state.provinces[n].owner !== c.id)
-      );
-      const recruitPool = borderProvs.length ? borderProvs : owned;
-      if (c.gold > 450) {
-        const targetP = recruitPool[Math.floor(Math.random() * recruitPool.length)];
-        const spend = Math.min(c.gold * 0.45, 700);
-        const troops = Math.min(Math.floor(targetP.pop * 0.12), Math.floor(spend / 0.85));
-        if (troops >= 60) {
-          targetP.army += troops;
-          targetP.pop -= troops;
+      // AI recruiting
+      if (c.gold > 550 && (atWarWith.length > 0 || Math.random() < 0.25)) {
+        const p = owned[Math.floor(Math.random() * owned.length)];
+        const spend = Math.min(c.gold * 0.4, 650);
+        const troops = Math.min(Math.floor(p.pop * 0.1), Math.floor(spend / 0.85));
+        if (troops >= 80) {
+          p.army += troops;
+          p.pop -= troops;
           c.gold -= Math.round(troops * 0.85);
         }
       }
 
-      // AI Building when peaceful and rich
-      if (atWarWith.length === 0 && c.gold > 950) {
-        const richP = owned[Math.floor(Math.random() * owned.length)];
-        if (richP.buildings.workshop < 2) {
-          richP.buildings.workshop++;
-          c.gold -= BUILDINGS.workshop.cost;
-        } else if (richP.buildings.farm < 2) {
-          richP.buildings.farm++;
-          c.gold -= BUILDINGS.farm.cost;
-        }
-      }
-
-      // AI Movement & Attacks
+      // AI movement during war
       if (atWarWith.length > 0) {
         for (const p of owned) {
           if (p.army < 220) continue;
           const enemyNbs = Array.from(p.neighbors)
             .map(id => state.provinces[id])
             .filter(nb => atWarWith.includes(nb.owner));
-
-          if (enemyNbs.length > 0) {
-            // Attack weakest adjacent enemy if favorable
+          if (enemyNbs.length) {
             enemyNbs.sort((a, b) => a.army - b.army);
-            const target = enemyNbs[0];
-            if (p.army > target.army * 0.92) {
-              const sendAmt = Math.floor(p.army * 0.82);
+            const tgt = enemyNbs[0];
+            if (p.army > tgt.army * 0.92) {
+              const sendAmt = Math.floor(p.army * 0.8);
               p.army -= sendAmt;
-              state.pendingOrders.push({ from: p.id, to: target.id, amount: sendAmt, civId: c.id });
-            }
-          } else if (p.army > 350) {
-            // Move interior troops toward border
-            const friendNbs = Array.from(p.neighbors)
-              .map(id => state.provinces[id])
-              .filter(nb => nb.owner === c.id);
-            const frontNb = friendNbs.find(nb =>
-              Array.from(nb.neighbors).some(nid => atWarWith.includes(state.provinces[nid].owner))
-            );
-            if (frontNb) {
-              const sendAmt = Math.floor(p.army * 0.7);
-              p.army -= sendAmt;
-              state.pendingOrders.push({ from: p.id, to: frontNb.id, amount: sendAmt, civId: c.id });
+              state.pendingOrders.push({ from: p.id, to: tgt.id, amount: sendAmt, civId: c.id });
             }
           }
         }
-
-        // AI-to-AI automatic peace after prolonged war
-        for (const enemyId of atWarWith) {
-          if (enemyId === state.playerCivId) continue;
-          const ws = getWarScore(c.id, enemyId);
-          if (Math.abs(ws) > 45 && Math.random() < 0.25) {
-            const rel = getRel(c.id, enemyId);
-            rel.war = false;
-            rel.truceUntil = state.turn + 12;
-            rel.warScoreA = 0;
-            pushNews(`🕊️ ${c.name} 與 ${state.civs.get(enemyId).name} 簽署了和平條約。`, 'peace');
+        // AI-to-AI peace
+        for (const eid of atWarWith) {
+          if (eid === state.playerCivId) continue;
+          if (Math.abs(getWarScore(c.id, eid)) > 40 && Math.random() < 0.22) {
+            const r = getRel(c.id, eid);
+            r.war = false; r.truceUntil = state.turn + 12; r.warScoreA = 0;
           }
         }
       }
     }
   }
 
-  function declareWar(attackerId, defenderId, silent = false) {
-    const rel = getRel(attackerId, defenderId);
-    if (rel.war) return;
-    rel.war = true;
-    rel.alliance = false;
-    rel.nap = false;
-    rel.trade = false;
-    rel.score = Math.max(-100, rel.score - 55);
-    rel.warScoreA = 0;
-    Sound.war();
+  function declareWar(a, b, silent = false) {
+    const r = getRel(a, b);
+    if (r.war) return;
+    r.war = true; r.alliance = false; r.nap = false; r.trade = false;
+    r.score = Math.max(-100, r.score - 55);
+    r.warScoreA = 0;
+    if (a === state.playerCivId || b === state.playerCivId) Sound.war();
     if (!silent) {
-      pushNews(`⚔️ ${state.civs.get(attackerId).name} 正式向 ${state.civs.get(defenderId).name} 宣戰！`, 'war');
+      pushNews(`⚔️ ${state.civs.get(a).name} 正式向 ${state.civs.get(b).name} 宣战！`, 'war');
     }
   }
 
   function checkVictoryOrDefeat() {
-    const playerProvs = state.provinces.filter(p => p.owner === state.playerCivId).length;
-    const total = state.provinces.length;
-    if (playerProvs === 0) {
-      openModal('帝國覆滅', `
-        <p style="line-height:1.6;color:var(--text-muted);">你的所有領土均已淪陷。歷史翻過了這一頁，但你可以隨時觀看延時回放或開啟新局。</p>
+    const myCount = state.provinces.filter(p => p.owner === state.playerCivId).length;
+    if (myCount === 0) {
+      openModal('帝国覆灭', `
+        <p style="line-height:1.6;color:var(--text-muted);">你的所有领土均已沦陷。你可以观看历史疆域回放，或返回主菜单开启新征程。</p>
         <div style="display:flex;gap:8px;margin-top:14px;">
-          <button class="btn btn-gold" id="m-end-replay">觀看歷史回放</button>
-          <button class="btn" id="m-end-menu">返回主選單</button>
+          <button class="btn btn-gold" id="m-end-replay">观看历史回放</button>
+          <button class="btn" id="m-end-menu">返回主菜单</button>
         </div>
       `);
       document.getElementById('m-end-replay').onclick = () => { closeModal(); startTimelapse(); };
       document.getElementById('m-end-menu').onclick = () => { closeModal(); showTitleScreen(); };
-    } else if (playerProvs >= Math.ceil(total * 0.65)) {
+    } else if (myCount >= Math.ceil(state.provinces.length * 0.55)) {
       Sound.peace();
-      openModal('🏆 世界霸主誕生！', `
-        <p style="line-height:1.6;">在 <strong>${state.year} 年 ${state.month} 月</strong>（第 ${state.turn} 回合），<strong>${state.civs.get(state.playerCivId).name}</strong> 控制了超過 65% 的世界省份，成就無可撼動的霸業！</p>
+      openModal('🏆 世界霸主！', `
+        <p style="line-height:1.6;">在 <strong>${state.year} 年 ${state.month} 月</strong>，<strong>${state.civs.get(state.playerCivId).name}</strong> 控制了全球超过 55% 的领土，登顶世界霸主！</p>
         <div style="display:flex;gap:8px;margin-top:14px;">
-          <button class="btn btn-gold" id="m-win-replay">觀看疆域擴張回放</button>
-          <button class="btn" id="m-win-continue">繼續征服全圖</button>
+          <button class="btn btn-gold" id="m-win-replay">观看疆域回放</button>
+          <button class="btn" id="m-win-cont">继续统一全球</button>
         </div>
       `);
       document.getElementById('m-win-replay').onclick = () => { closeModal(); startTimelapse(); };
-      document.getElementById('m-win-continue').onclick = () => closeModal();
+      document.getElementById('m-win-cont').onclick = () => closeModal();
     }
   }
 
@@ -1921,61 +1681,53 @@
   }
 
   function screenToWorld(sx, sy) {
-    const cw = canvas.clientWidth;
-    const ch = canvas.clientHeight;
     return {
-      x: (sx - cw * 0.5) / state.cam.zoom + state.cam.x,
-      y: (sy - ch * 0.5) / state.cam.zoom + state.cam.y
+      x: (sx - canvas.clientWidth * 0.5) / state.cam.zoom + state.cam.x,
+      y: (sy - canvas.clientHeight * 0.5) / state.cam.zoom + state.cam.y
     };
   }
 
-  function pointInPoly(x, y, poly) {
-    let inside = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const xi = poly[i][0], yi = poly[i][1];
-      const xj = poly[j][0], yj = poly[j][1];
-      const intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi + 1e-9) + xi);
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  }
-
   function findProvinceAt(wx, wy) {
-    for (let i = 0; i < state.provinces.length; i++) {
-      if (pointInPoly(wx, wy, state.provinces[i].poly)) return i;
+    // Use native Path2D hit-testing in world coordinates!
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    let hit = null;
+    for (let i = state.provinces.length - 1; i >= 0; i--) {
+      const p = state.provinces[i];
+      if (!p.path2d) continue;
+      const [[x0, y0], [x1, y1]] = p.bounds;
+      if (wx < x0 || wx > x1 || wy < y0 || wy > y1) continue;
+      if (ctx.isPointInPath(p.path2d, wx, wy)) { hit = i; break; }
     }
-    return null;
+    ctx.restore();
+    return hit;
   }
 
   function getProvinceFill(p) {
     if (state.mode === 'timelapse' && state.history[state.timelapseIndex]) {
-      const histOwner = state.history[state.timelapseIndex].owners[p.id];
-      return state.civs.get(histOwner)?.color || '#555';
+      const o = state.history[state.timelapseIndex].owners[p.id];
+      return state.civs.get(o)?.color || '#555';
     }
-    if (state.mapMode === 'political') {
-      return state.civs.get(p.owner)?.color || '#555';
-    }
-    if (state.mapMode === 'terrain') {
-      return TERRAIN_INFO[p.terrain].color;
-    }
+    if (state.mapMode === 'political') return state.civs.get(p.owner)?.color || '#555';
+    if (state.mapMode === 'terrain') return TERRAIN_INFO[p.terrain].color;
     if (state.mapMode === 'diplomacy') {
-      const refCiv = state.selectedProvId !== null ? state.provinces[state.selectedProvId].owner : state.playerCivId;
-      if (p.owner === refCiv) return '#2fa85f';
-      const rel = getRel(refCiv, p.owner);
-      if (rel.war) return '#d63031';
-      if (rel.alliance) return '#3b82f6';
-      if (rel.nap || rel.trade) return '#38bdf8';
-      if (rel.score > 20) return '#65a30d';
-      if (rel.score < -20) return '#d97706';
-      return '#4b5563';
+      const ref = state.selectedProvId !== null ? state.provinces[state.selectedProvId].owner : state.playerCivId;
+      if (p.owner === ref) return '#2fa85f';
+      const r = getRel(ref, p.owner);
+      if (r.war) return '#d63031';
+      if (r.alliance) return '#3b82f6';
+      if (r.nap || r.trade) return '#38bdf8';
+      if (r.score > 20) return '#65a30d';
+      if (r.score < -20) return '#d97706';
+      return '#475569';
     }
     if (state.mapMode === 'economy') {
-      const t = Math.min(1, p.econ / 2400);
-      return `hsl(${42 + t * 88}, 62%, ${24 + t * 32}%)`;
+      const t = Math.min(1, p.econ / 2600);
+      return `hsl(${38 + t * 90}, 58%, ${24 + t * 32}%)`;
     }
     if (state.mapMode === 'population') {
-      const t = Math.min(1, p.pop / 70000);
-      return `hsl(${215 - t * 170}, 65%, ${26 + t * 32}%)`;
+      const t = Math.min(1, Math.log10(Math.max(1000, p.pop)) / 6.2);
+      return `hsl(${215 - t * 175}, 62%, ${24 + t * 34}%)`;
     }
     return '#555';
   }
@@ -1987,34 +1739,41 @@
   function drawMap(now) {
     const cw = canvas.clientWidth;
     const ch = canvas.clientHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Ocean background
-    const oceanGrad = ctx.createRadialGradient(cw * 0.5, ch * 0.5, 60, cw * 0.5, ch * 0.5, Math.max(cw, ch) * 0.8);
-    oceanGrad.addColorStop(0, '#13263d');
-    oceanGrad.addColorStop(1, '#09131f');
-    ctx.fillStyle = oceanGrad;
+    // Deep nautical ocean background
+    const grad = ctx.createRadialGradient(cw * 0.5, ch * 0.5, 40, cw * 0.5, ch * 0.5, Math.max(cw, ch) * 0.8);
+    grad.addColorStop(0, '#12263c');
+    grad.addColorStop(1, '#08121e');
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, cw, ch);
+
+    if (!state.provinces.length) {
+      requestAnimationFrame(drawMap);
+      return;
+    }
 
     ctx.save();
     ctx.translate(cw * 0.5, ch * 0.5);
     ctx.scale(state.cam.zoom, state.cam.zoom);
     ctx.translate(-state.cam.x, -state.cam.y);
 
-    // Subtle ocean lat/lon grid
+    // Subtle lat/lon graticule
     ctx.strokeStyle = 'rgba(148, 185, 224, 0.06)';
     ctx.lineWidth = 1 / state.cam.zoom;
-    for (let x = 0; x <= MAP_W; x += 150) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, MAP_H); ctx.stroke();
+    for (let x = 0; x <= WORLD_W; x += 200) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_H); ctx.stroke();
     }
-    for (let y = 0; y <= MAP_H; y += 150) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_W, y); ctx.stroke();
+    for (let y = 0; y <= WORLD_H; y += 200) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_W, y); ctx.stroke();
     }
 
-    // Sea lane dashed connections
+    // Sea lanes (crisp nautical dashed curves)
     ctx.save();
-    ctx.setLineDash([7, 7]);
-    ctx.strokeStyle = 'rgba(130, 185, 240, 0.32)';
-    ctx.lineWidth = 1.6;
+    ctx.setLineDash([6 / state.cam.zoom, 6 / state.cam.zoom]);
+    ctx.strokeStyle = 'rgba(130, 190, 245, 0.25)';
+    ctx.lineWidth = 1.2 / state.cam.zoom;
     const drawnSea = new Set();
     for (const p of state.provinces) {
       for (const nbId of p.seaLinks) {
@@ -2022,6 +1781,8 @@
         if (drawnSea.has(key)) continue;
         drawnSea.add(key);
         const nb = state.provinces[nbId];
+        // Skip wrapping across date line
+        if (Math.abs(p.cx - nb.cx) > WORLD_W * 0.55) continue;
         ctx.beginPath();
         ctx.moveTo(p.cx, p.cy);
         ctx.lineTo(nb.cx, nb.cy);
@@ -2030,64 +1791,40 @@
     }
     ctx.restore();
 
-    // Soft continental coastal glow
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-    ctx.shadowBlur = 18;
-    for (const p of state.provinces) {
-      if (p.poly.length < 3) continue;
-      ctx.beginPath();
-      ctx.moveTo(p.poly[0][0], p.poly[0][1]);
-      for (let i = 1; i < p.poly.length; i++) ctx.lineTo(p.poly[i][0], p.poly[i][1]);
-      ctx.closePath();
-      ctx.fillStyle = getProvinceFill(p);
-      ctx.fill();
-    }
-    ctx.restore();
-
-    // Province fills & borders
     const moveTargets = (state.mode === 'move' && state.moveSourceId !== null)
       ? state.provinces[state.moveSourceId].neighbors
       : null;
 
+    // 1. Draw all country polygons
     for (const p of state.provinces) {
-      if (p.poly.length < 3) continue;
-      ctx.beginPath();
-      ctx.moveTo(p.poly[0][0], p.poly[0][1]);
-      for (let i = 1; i < p.poly.length; i++) ctx.lineTo(p.poly[i][0], p.poly[i][1]);
-      ctx.closePath();
-
+      if (!p.path2d) continue;
       ctx.fillStyle = getProvinceFill(p);
-      ctx.fill();
+      ctx.fill(p.path2d);
 
-      // Highlight valid move target
       if (moveTargets && moveTargets.has(p.id)) {
-        const pulse = 0.22 + 0.14 * Math.sin(now * 0.006);
-        const isEnemy = p.owner !== state.playerCivId;
-        ctx.fillStyle = isEnemy ? `rgba(248, 113, 113, ${pulse})` : `rgba(74, 222, 128, ${pulse})`;
-        ctx.fill();
+        const pulse = 0.22 + 0.16 * Math.sin(now * 0.006);
+        ctx.fillStyle = p.owner !== state.playerCivId ? `rgba(248, 113, 113, ${pulse})` : `rgba(74, 222, 128, ${pulse})`;
+        ctx.fill(p.path2d);
       }
-
-      // Hover highlight
       if (p.id === state.hoveredProvId) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
-        ctx.fill();
+        ctx.fill(p.path2d);
       }
 
-      // Province inner border
-      ctx.strokeStyle = 'rgba(10, 16, 24, 0.55)';
-      ctx.lineWidth = 1.25;
-      ctx.stroke();
-
-      // Selected province golden outline
-      if (p.id === state.selectedProvId) {
-        ctx.strokeStyle = '#ffe082';
-        ctx.lineWidth = 3.2;
-        ctx.stroke();
-      }
+      ctx.strokeStyle = 'rgba(8, 14, 22, 0.72)';
+      ctx.lineWidth = 0.95 / Math.sqrt(state.cam.zoom);
+      ctx.stroke(p.path2d);
     }
 
-    // Draw pending marching arrows (classic AoH2 dotted arrows)
+    // Selected province golden highlight on top
+    if (state.selectedProvId !== null && state.provinces[state.selectedProvId]?.path2d) {
+      const sp = state.provinces[state.selectedProvId];
+      ctx.strokeStyle = '#ffe082';
+      ctx.lineWidth = 2.6 / state.cam.zoom;
+      ctx.stroke(sp.path2d);
+    }
+
+    // 2. Pending player marching arrows
     if (state.mode !== 'timelapse') {
       for (const o of state.pendingOrders) {
         if (o.civId !== state.playerCivId) continue;
@@ -2096,145 +1833,106 @@
         const isAtk = b.owner !== state.playerCivId;
         const ang = Math.atan2(b.cy - a.cy, b.cx - a.cx);
         const dist = Math.hypot(b.cx - a.cx, b.cy - a.cy);
-        const endX = a.cx + Math.cos(ang) * (dist - 18);
-        const endY = a.cy + Math.sin(ang) * (dist - 18);
+        const endX = a.cx + Math.cos(ang) * Math.max(4, dist - 14 / state.cam.zoom);
+        const endY = a.cy + Math.sin(ang) * Math.max(4, dist - 14 / state.cam.zoom);
 
         ctx.save();
         ctx.strokeStyle = isAtk ? '#ff6b6b' : '#4ade80';
-        ctx.lineWidth = 4;
-        ctx.setLineDash([8, 6]);
-        ctx.lineDashOffset = -(now * 0.03);
+        ctx.lineWidth = 3.2 / state.cam.zoom;
+        ctx.setLineDash([7 / state.cam.zoom, 5 / state.cam.zoom]);
+        ctx.lineDashOffset = -(now * 0.025) / state.cam.zoom;
         ctx.beginPath();
         ctx.moveTo(a.cx, a.cy);
         ctx.lineTo(endX, endY);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Arrowhead
+        const hs = 8 / state.cam.zoom;
         ctx.fillStyle = isAtk ? '#ff6b6b' : '#4ade80';
         ctx.beginPath();
-        ctx.moveTo(endX + Math.cos(ang) * 10, endY + Math.sin(ang) * 10);
-        ctx.lineTo(endX + Math.cos(ang + 2.4) * 10, endY + Math.sin(ang + 2.4) * 10);
-        ctx.lineTo(endX + Math.cos(ang - 2.4) * 10, endY + Math.sin(ang - 2.4) * 10);
+        ctx.moveTo(endX + Math.cos(ang) * hs, endY + Math.sin(ang) * hs);
+        ctx.lineTo(endX + Math.cos(ang + 2.4) * hs, endY + Math.sin(ang + 2.4) * hs);
+        ctx.lineTo(endX + Math.cos(ang - 2.4) * hs, endY + Math.sin(ang - 2.4) * hs);
         ctx.closePath();
         ctx.fill();
-
-        // Marching troop count pill at midpoint
-        const mx = (a.cx + b.cx) * 0.5;
-        const my = (a.cy + b.cy) * 0.5;
-        const label = `${o.amount}`;
-        ctx.font = 'bold 11px Inter, sans-serif';
-        const tw = ctx.measureText(label).width + 10;
-        ctx.fillStyle = 'rgba(12, 18, 28, 0.9)';
-        ctx.fillRect(mx - tw * 0.5, my - 9, tw, 18);
-        ctx.strokeStyle = isAtk ? '#ff6b6b' : '#4ade80';
-        ctx.lineWidth = 1.2;
-        ctx.strokeRect(mx - tw * 0.5, my - 9, tw, 18);
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, mx, my);
         ctx.restore();
       }
     }
 
-    // Province labels, capitals, forts & army badges
+    // 3. Smart LOD Labels, Capitals & Army Badges (Never cluttered!)
     if (state.mode !== 'timelapse') {
-      for (const p of state.provinces) {
-        const civ = state.civs.get(p.owner);
-        const showDetail = state.cam.zoom >= 0.52;
+      const z = state.cam.zoom;
+      const minAreaForLabel = z < 0.7 ? 1600 : (z < 1.2 ? 320 : 40);
+      const minAreaForArmy  = z < 0.7 ? 2000 : (z < 1.2 ? 380 : 30);
 
-        // Capital star or city dot
-        if (p.isCapital) {
+      for (const p of state.provinces) {
+        const isMine = p.owner === state.playerCivId;
+        const isSel = p.id === state.selectedProvId;
+        const showLabel = isSel || p.isCapital && (p.area > minAreaForLabel * 0.6 || isMine) || p.area > minAreaForLabel;
+        const showArmy  = p.army > 0 && (isSel || isMine || p.area > minAreaForArmy);
+
+        if (p.isCapital && (z > 0.65 || isMine || p.area > 1200)) {
+          const r = 3.6 / Math.sqrt(z);
           ctx.fillStyle = '#fde047';
-          ctx.strokeStyle = '#111';
-          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = '#0c121c';
+          ctx.lineWidth = 1 / Math.sqrt(z);
           ctx.beginPath();
-          ctx.arc(p.cx, p.cy - 14, 5.5, 0, Math.PI * 2);
+          ctx.arc(p.cx, p.cy - 10 / z, r, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
         }
 
-        // Province name when zoomed in
-        if (showDetail) {
-          ctx.font = p.isCapital ? '700 12px "PingFang TC", sans-serif' : '600 10.5px "PingFang TC", sans-serif';
+        if (showLabel) {
+          const fs = Math.max(8, Math.min(13, 11 / Math.sqrt(z)));
+          ctx.font = `${p.isCapital ? 700 : 600} ${fs}px "PingFang SC", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillStyle = 'rgba(0,0,0,0.72)';
-          ctx.fillText(p.name, p.cx + 1, p.cy - 2 + 1);
-          ctx.fillStyle = p.isCapital ? '#fef08a' : 'rgba(255,255,255,0.92)';
-          ctx.fillText(p.name, p.cx, p.cy - 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.78)';
+          ctx.fillText(p.name, p.cx + 0.8 / z, p.cy + 0.8 / z);
+          ctx.fillStyle = isMine ? '#fef08a' : 'rgba(255,255,255,0.92)';
+          ctx.fillText(p.name, p.cx, p.cy);
         }
 
-        // Army badge (signature AoH2 pill)
-        if (p.army > 0 && state.cam.zoom >= 0.44) {
+        if (showArmy) {
           const txt = p.army >= 10000 ? (p.army / 1000).toFixed(1) + 'k' : `${p.army}`;
-          const fortIcon = p.buildings.fort > 0 ? '🛡 ' : '';
-          const fullTxt = fortIcon + txt;
-          ctx.font = 'bold 10.5px Inter, sans-serif';
-          const bw = ctx.measureText(fullTxt).width + 12;
-          const bh = 16;
+          const label = (p.buildings.fort > 0 ? '🛡' : '') + txt;
+          const fs = Math.max(8, 10 / Math.sqrt(z));
+          ctx.font = `700 ${fs}px Inter, sans-serif`;
+          const padX = 5 / Math.sqrt(z);
+          const bh = 14 / Math.sqrt(z);
+          const bw = ctx.measureText(label).width + padX * 2;
           const bx = p.cx - bw * 0.5;
-          const by = p.cy + 7;
+          const by = p.cy + 8 / z;
 
-          ctx.fillStyle = 'rgba(12, 18, 28, 0.86)';
+          ctx.fillStyle = 'rgba(10, 16, 26, 0.86)';
           ctx.beginPath();
-          ctx.roundRect(bx, by, bw, bh, 4);
+          ctx.roundRect(bx, by, bw, bh, 3 / Math.sqrt(z));
           ctx.fill();
-
-          ctx.strokeStyle = p.owner === state.playerCivId ? '#e5b95c' : (civ ? civ.color : '#888');
-          ctx.lineWidth = p.owner === state.playerCivId ? 1.5 : 1.1;
+          ctx.strokeStyle = isMine ? '#e6bc65' : (state.civs.get(p.owner)?.color || '#94a3b8');
+          ctx.lineWidth = (isMine ? 1.4 : 0.9) / Math.sqrt(z);
           ctx.stroke();
 
           ctx.fillStyle = '#fff';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(fullTxt, p.cx, by + bh * 0.5 + 0.5);
+          ctx.fillText(label, p.cx, by + bh * 0.5 + 0.3);
         }
       }
     }
 
-    // Civilization large nameplates on political map
-    if (state.mapMode === 'political' || state.mode === 'timelapse') {
-      const ownersMap = new Map();
-      const snap = state.mode === 'timelapse' ? state.history[state.timelapseIndex] : null;
-      for (const p of state.provinces) {
-        const oid = snap ? snap.owners[p.id] : p.owner;
-        if (!ownersMap.has(oid)) ownersMap.set(oid, []);
-        ownersMap.get(oid).push(p);
-      }
-      for (const [oid, list] of ownersMap.entries()) {
-        if (list.length < 2) continue;
-        const civ = state.civs.get(oid);
-        if (!civ) continue;
-        let sx = 0, sy = 0;
-        for (const p of list) { sx += p.cx; sy += p.cy; }
-        const cx = sx / list.length;
-        const cy = sy / list.length;
-        const fSize = Math.min(34, 15 + list.length * 1.4);
-        ctx.font = `800 ${fSize}px "PingFang TC", serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'rgba(0,0,0,0.42)';
-        ctx.fillText(civ.name, cx + 2, cy - 22);
-        ctx.fillStyle = 'rgba(255, 250, 235, 0.34)';
-        ctx.fillText(civ.name, cx, cy - 24);
-      }
-    }
-
-    // Floating battle animations
+    // 4. Floating combat/recruit texts
     for (let i = state.animations.length - 1; i >= 0; i--) {
       const a = state.animations[i];
       const t = (now - a.born) / a.dur;
       if (t >= 1) { state.animations.splice(i, 1); continue; }
       ctx.save();
       ctx.globalAlpha = 1 - t;
-      ctx.font = 'bold 14px "PingFang TC", sans-serif';
+      ctx.font = `800 ${13 / Math.sqrt(state.cam.zoom)}px "PingFang SC", sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = '#000';
-      ctx.fillText(a.text, a.x + 1, a.y - t * 38 + 1);
+      ctx.fillText(a.text, a.x + 1, a.y - (t * 32) / state.cam.zoom + 1);
       ctx.fillStyle = a.color;
-      ctx.fillText(a.text, a.x, a.y - t * 38);
+      ctx.fillText(a.text, a.x, a.y - (t * 32) / state.cam.zoom);
       ctx.restore();
     }
 
@@ -2247,23 +1945,21 @@
     const civ = state.civs.get(state.playerCivId);
     if (!civ) return;
     const st = getCivStats(civ.id);
-    const ranks = getRankings();
-    const myRankIdx = ranks.findIndex(r => r.civ.id === civ.id);
 
     document.getElementById('hud-flag').innerHTML = flagSVG(civ.flag);
     document.getElementById('hud-civ-name').textContent = civ.name;
-    document.getElementById('hud-civ-gov').textContent = `${civ.gov}${civ.vassalOf ? ' · 附庸國' : ''}`;
+    document.getElementById('hud-civ-gov').textContent = `${civ.gov}${civ.vassalOf ? ' · 附庸' : ''}`;
     document.getElementById('hud-gold').textContent = civ.gold.toLocaleString();
     const incEl = document.getElementById('hud-income');
     incEl.textContent = (st.net >= 0 ? '+' : '') + st.net.toLocaleString();
     incEl.className = 'sub ' + (st.net >= 0 ? 'pos' : 'neg');
 
-    document.getElementById('hud-mp').textContent = `${civ.mp.toFixed(1)} / ${civ.maxMp.toFixed(1)}`;
+    document.getElementById('hud-mp').textContent = `${civ.mp.toFixed(1)}/${civ.maxMp.toFixed(1)}`;
     document.getElementById('hud-dp').textContent = `外交 ${civ.dp.toFixed(1)}`;
     document.getElementById('hud-army').textContent = st.army.toLocaleString();
-    document.getElementById('hud-provs').textContent = `${st.provCount} / ${state.provinces.length} 省`;
+    document.getElementById('hud-provs').textContent = `${st.provCount} 地区`;
     document.getElementById('hud-tech').textContent = civ.tech.toFixed(2);
-    document.getElementById('hud-rank').textContent = `排名 #${myRankIdx >= 0 ? myRankIdx + 1 : '-'}`;
+    document.getElementById('hud-tp').textContent = `点数 ${civ.techPoints}`;
 
     document.getElementById('hud-date').textContent = `${state.year}年 ${state.month}月`;
     document.getElementById('hud-turn').textContent = `第 ${state.turn} 回合 · ${state.scenario.name}`;
@@ -2286,7 +1982,7 @@
     document.getElementById('prov-name').textContent = p.name;
     document.getElementById('prov-terrain').textContent = `${TERRAIN_INFO[p.terrain].name} (防+${Math.round(TERRAIN_INFO[p.terrain].def * 100)}%)`;
     document.getElementById('prov-capital-tag').style.display = p.isCapital ? 'inline-block' : 'none';
-    document.getElementById('prov-owner').textContent = owner ? owner.name : '無主地';
+    document.getElementById('prov-owner').textContent = owner ? owner.name : '—';
     document.getElementById('prov-army').textContent = p.army.toLocaleString();
     document.getElementById('prov-pop').textContent = p.pop.toLocaleString();
     document.getElementById('prov-econ').textContent = p.econ.toLocaleString();
@@ -2303,7 +1999,7 @@
         bWrap.innerHTML += `<span class="b-chip">${info.icon} ${info.name} Lv.${p.buildings[k]}</span>`;
       }
     }
-    if (!hasB) bWrap.innerHTML = `<span style="font-size:11px;color:var(--text-muted);">尚未建造任何設施</span>`;
+    if (!hasB) bWrap.innerHTML = `<span style="font-size:11px;color:var(--text-muted);">暂无设施</span>`;
 
     const actWrap = document.getElementById('prov-actions');
     actWrap.innerHTML = '';
@@ -2317,39 +2013,34 @@
         b.onclick = fn;
         actWrap.appendChild(b);
       };
-      addBtn('⚔ 徵兵', 'btn-gold', () => openRecruitModal(p));
-      addBtn('➔ 行軍', 'btn-success', () => startMoveMode(p), p.army <= 0);
-      addBtn('🏗 建設', '', () => openBuildModal(p));
-      addBtn('📈 投資經濟 ($260)', '', () => investProvince(p));
+      addBtn('⚔ 征兵', 'btn-gold', () => openRecruitModal(p));
+      addBtn('➔ 行军', 'btn-success', () => startMoveMode(p), p.army <= 0);
+      addBtn('🏗 建设', '', () => openBuildModal(p));
+      addBtn('📈 投资 ($260)', '', () => investProvince(p));
       if (p.stability < 98 || p.coreOwner !== state.playerCivId) {
         addBtn('🕊 同化 ($200)', '', () => assimilateProvince(p));
       }
-      if (p.army > 0) {
-        addBtn('解散駐軍', 'btn-danger', () => disbandArmy(p));
-      }
+      if (p.army > 0) addBtn('裁军', 'btn-danger', () => disbandArmy(p));
     } else {
       const rel = getRel(state.playerCivId, p.owner);
-      const bDiplo = document.createElement('button');
-      bDiplo.className = 'btn btn-sm btn-gold';
-      bDiplo.textContent = `外交：${owner.name} (${rel.war ? '交戰中' : `關係 ${rel.score}`})`;
-      bDiplo.onclick = () => openDiplomacyModal(p.owner);
-      actWrap.appendChild(bDiplo);
+      const bDip = document.createElement('button');
+      bDip.className = 'btn btn-sm btn-gold';
+      bDip.textContent = `外交：${owner.name} (${rel.war ? '交战' : `关系 ${rel.score}`})`;
+      bDip.onclick = () => openDiplomacyModal(p.owner);
+      actWrap.appendChild(bDip);
 
       if (rel.war) {
         const bPeace = document.createElement('button');
         bPeace.className = 'btn btn-sm btn-success';
-        bPeace.textContent = '🕊 和平談判';
+        bPeace.textContent = '🕊 和平谈判';
         bPeace.onclick = () => openPeaceModal(p.owner);
         actWrap.appendChild(bPeace);
       } else {
         const bWar = document.createElement('button');
         bWar.className = 'btn btn-sm btn-danger';
-        bWar.textContent = '⚔ 宣戰';
+        bWar.textContent = '⚔ 宣战';
         bWar.onclick = () => {
-          if (rel.truceUntil > state.turn) {
-            showToast(`停戰協議生效中（剩餘 ${rel.truceUntil - state.turn} 回合）`);
-            return;
-          }
+          if (rel.truceUntil > state.turn) return showToast(`停战协议中（剩余 ${rel.truceUntil - state.turn} 回合）`);
           declareWar(state.playerCivId, p.owner, false);
           updateAllUI();
         };
@@ -2358,91 +2049,82 @@
     }
   }
 
-  // ======================== PLAYER ACTIONS ========================
+  // ======================== MODALS & ACTIONS ========================
   function openRecruitModal(p) {
     const civ = state.civs.get(state.playerCivId);
-    if (civ.mp < 0.6) { showToast('行動點不足（需 0.6 行動點）'); return; }
-    const maxByPop = Math.floor(p.pop * 0.25);
-    const maxByGold = Math.floor(Math.max(0, civ.gold) / 0.85);
-    const maxRecruit = Math.min(maxByPop, maxByGold);
-    if (maxRecruit < 20) { showToast('金幣或人口不足以徵召軍隊'); return; }
-
-    const defVal = Math.max(20, Math.floor(maxRecruit * 0.5));
-    openModal(`在 ${p.name} 徵兵`, `
+    if (civ.mp < 0.6) return showToast('行动点不足（需 0.6）');
+    const maxR = Math.min(Math.floor(p.pop * 0.25), Math.floor(Math.max(0, civ.gold) / 0.85));
+    if (maxR < 20) return showToast('金币或人口不足');
+    const defVal = Math.max(20, Math.floor(maxR * 0.5));
+    openModal(`在 ${p.name} 征兵`, `
       <div class="slider-group">
-        <div class="slider-row"><span>徵召兵力</span><strong id="rec-val">${defVal.toLocaleString()}</strong></div>
-        <input type="range" id="rec-slider" min="20" max="${maxRecruit}" step="10" value="${defVal}">
+        <div class="slider-row"><span>征召兵力</span><strong id="rec-val">${defVal.toLocaleString()}</strong></div>
+        <input type="range" id="rec-sl" min="20" max="${maxR}" step="10" value="${defVal}">
         <div class="slider-row" style="margin-top:8px;color:var(--text-muted);">
-          <span>花費金幣：<strong class="gold-txt" id="rec-cost">${Math.round(defVal * 0.85)}</strong></span>
-          <span>消耗行動點：0.6</span>
+          <span>军费：<strong class="gold-txt" id="rec-cost">${Math.round(defVal * 0.85).toLocaleString()}</strong></span>
+          <span>消耗行动点：0.6</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button class="btn" id="rec-cancel">取消</button>
-        <button class="btn btn-gold" id="rec-confirm">確認徵兵</button>
+        <button class="btn" id="rec-no">取消</button>
+        <button class="btn btn-gold" id="rec-ok">确认征兵</button>
       </div>
     `);
-    const sl = document.getElementById('rec-slider');
+    const sl = document.getElementById('rec-sl');
     sl.oninput = () => {
       const v = Number(sl.value);
       document.getElementById('rec-val').textContent = v.toLocaleString();
       document.getElementById('rec-cost').textContent = Math.round(v * 0.85).toLocaleString();
     };
-    document.getElementById('rec-cancel').onclick = closeModal;
-    document.getElementById('rec-confirm').onclick = () => {
+    document.getElementById('rec-no').onclick = closeModal;
+    document.getElementById('rec-ok').onclick = () => {
       const v = Number(sl.value);
-      const cost = Math.round(v * 0.85);
-      civ.gold -= cost;
+      civ.gold -= Math.round(v * 0.85);
       civ.mp = Math.max(0, +(civ.mp - 0.6).toFixed(1));
-      p.army += v;
-      p.pop -= v;
+      p.army += v; p.pop -= v;
       Sound.coin();
       spawnFloatText(p.cx, p.cy, `+${v} 兵力`, '#fde047');
-      closeModal();
-      updateAllUI();
+      closeModal(); updateAllUI();
     };
   }
 
   function startMoveMode(p) {
     const civ = state.civs.get(state.playerCivId);
-    if (civ.mp < 0.6) { showToast('行動點不足（需 0.6 行動點）'); return; }
+    if (civ.mp < 0.6) return showToast('行动点不足（需 0.6）');
     state.mode = 'move';
     state.moveSourceId = p.id;
     canvas.classList.add('crosshair');
-    document.getElementById('mode-banner-text').textContent = `行軍起點：${p.name}（兵力 ${p.army.toLocaleString()}）— 請點擊發光的相鄰省份`;
+    document.getElementById('mode-banner-text').textContent = `起兵地：${p.name}（${p.army.toLocaleString()} 兵）— 点选发光的相邻/海路相连地区`;
     document.getElementById('mode-banner').classList.remove('hidden');
   }
 
   function openMoveConfirmModal(fromP, toP) {
     const isEnemy = toP.owner !== state.playerCivId;
-    const defVal = fromP.army;
-    openModal(isEnemy ? `進攻 ${toP.name}` : `調遣至 ${toP.name}`, `
+    openModal(isEnemy ? `进攻 ${toP.name}` : `调兵至 ${toP.name}`, `
       <p style="margin:0 0 10px;color:var(--text-muted);font-size:12px;">
-        ${isEnemy ? `目標守軍約 <strong>${toP.army.toLocaleString()}</strong>，地形防禦 +${Math.round(TERRAIN_INFO[toP.terrain].def * 100)}%，堡壘 Lv.${toP.buildings.fort}。` : `增援友方省份（現有駐軍 ${toP.army.toLocaleString()}）。`}
+        ${isEnemy ? `敌方守军 ${toP.army.toLocaleString()} · 地形防御 +${Math.round(TERRAIN_INFO[toP.terrain].def * 100)}% · 堡垒 Lv.${toP.buildings.fort}` : `增援友军（现驻军 ${toP.army.toLocaleString()}）`}
       </p>
       <div class="slider-group">
-        <div class="slider-row"><span>出動兵力</span><strong id="mv-val">${defVal.toLocaleString()}</strong></div>
-        <input type="range" id="mv-slider" min="1" max="${fromP.army}" value="${defVal}">
+        <div class="slider-row"><span>出动兵力</span><strong id="mv-val">${fromP.army.toLocaleString()}</strong></div>
+        <input type="range" id="mv-sl" min="1" max="${fromP.army}" value="${fromP.army}">
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button class="btn" id="mv-cancel">取消</button>
-        <button class="btn ${isEnemy ? 'btn-danger' : 'btn-success'}" id="mv-confirm">${isEnemy ? '⚔ 下達進攻令' : '➔ 下達行軍令'}</button>
+        <button class="btn" id="mv-no">取消</button>
+        <button class="btn ${isEnemy ? 'btn-danger' : 'btn-success'}" id="mv-ok">${isEnemy ? '⚔ 下达进攻令' : '➔ 下达行军令'}</button>
       </div>
     `);
-    const sl = document.getElementById('mv-slider');
+    const sl = document.getElementById('mv-sl');
     sl.oninput = () => { document.getElementById('mv-val').textContent = Number(sl.value).toLocaleString(); };
-    document.getElementById('mv-cancel').onclick = () => { closeModal(); exitSpecialMode(); };
-    document.getElementById('mv-confirm').onclick = () => {
+    document.getElementById('mv-no').onclick = () => { closeModal(); exitSpecialMode(); };
+    document.getElementById('mv-ok').onclick = () => {
       const amt = Number(sl.value);
       const civ = state.civs.get(state.playerCivId);
       fromP.army -= amt;
       civ.mp = Math.max(0, +(civ.mp - 0.6).toFixed(1));
       state.pendingOrders.push({ from: fromP.id, to: toP.id, amount: amt, civId: state.playerCivId });
       Sound.march();
-      closeModal();
-      exitSpecialMode();
-      updateAllUI();
-      showToast(`已下達行軍命令：${fromP.name} ➔ ${toP.name} (${amt.toLocaleString()} 兵)`);
+      closeModal(); exitSpecialMode(); updateAllUI();
+      showToast(`已下达命令：${fromP.name} ➔ ${toP.name} (${amt.toLocaleString()} 兵)`);
     };
   }
 
@@ -2453,215 +2135,214 @@
       const lv = p.buildings[key];
       const cost = Math.round(info.cost * (1 + lv * 0.45));
       const maxed = lv >= 3;
-      html += `
-        <div class="build-card">
-          <div class="b-name">${info.icon} ${info.name} <span style="color:var(--gold);font-size:11px;">Lv.${lv}/3</span></div>
-          <div class="b-desc">${info.desc}</div>
-          <button class="btn btn-sm btn-gold b-do" data-b="${key}" data-cost="${cost}" ${(maxed || civ.gold < cost) ? 'disabled' : ''}>
-            ${maxed ? '已達最高等級' : `建造 ($${cost})`}
-          </button>
-        </div>
-      `;
+      html += `<div class="build-card">
+        <div class="b-name">${info.icon} ${info.name} <span style="color:var(--gold);font-size:11px;">Lv.${lv}/3</span></div>
+        <div class="b-desc">${info.desc}</div>
+        <button class="btn btn-sm btn-gold b-do" data-b="${key}" data-cost="${cost}" ${(maxed || civ.gold < cost) ? 'disabled' : ''}>
+          ${maxed ? '已满级' : `建造 ($${cost})`}
+        </button>
+      </div>`;
     }
     html += `</div>`;
-    openModal(`${p.name} · 基礎建設`, html);
+    openModal(`${p.name} · 地区建设`, html);
     document.querySelectorAll('.b-do').forEach(btn => {
       btn.onclick = () => {
-        const k = btn.dataset.b;
-        const cost = Number(btn.dataset.cost);
+        const k = btn.dataset.b, cost = Number(btn.dataset.cost);
         if (civ.gold < cost) return;
-        civ.gold -= cost;
-        p.buildings[k]++;
-        Sound.coin();
-        spawnFloatText(p.cx, p.cy, `建成 ${BUILDINGS[k].name}`, '#60a5fa');
-        updateAllUI();
-        openBuildModal(p);
+        civ.gold -= cost; p.buildings[k]++;
+        Sound.coin(); spawnFloatText(p.cx, p.cy, `建成 ${BUILDINGS[k].name}`, '#60a5fa');
+        updateAllUI(); openBuildModal(p);
       };
     });
   }
 
+  function openTechModal() {
+    const civ = state.civs.get(state.playerCivId);
+    const render = () => {
+      document.getElementById('modal-body').innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+          <span>当前科技等级：<strong style="color:var(--blue)">${civ.tech.toFixed(2)}</strong></span>
+          <span>可用科技点：<strong class="gold-txt">${civ.techPoints}</strong></span>
+        </div>
+        <div class="tech-grid">
+          ${TECH_PERKS.map(tp => {
+            const lv = civ.perks[tp.key];
+            return `<div class="build-card">
+              <div class="b-name">${tp.name} <span style="color:var(--gold);font-size:11px;">Lv.${lv}/${tp.max}</span></div>
+              <div class="b-desc">${tp.desc}</div>
+              <button class="btn btn-sm btn-gold tp-up" data-k="${tp.key}" ${(civ.techPoints < 1 || lv >= tp.max) ? 'disabled' : ''}>
+                ${lv >= tp.max ? '已满级' : '升级 (1 科技点)'}
+              </button>
+            </div>`;
+          }).join('')}
+        </div>
+      `;
+      document.querySelectorAll('.tp-up').forEach(b => {
+        b.onclick = () => {
+          const k = b.dataset.k;
+          if (civ.techPoints < 1 || civ.perks[k] >= 10) return;
+          civ.techPoints--; civ.perks[k]++;
+          Sound.coin(); updateAllUI(); render();
+        };
+      });
+    };
+    openModal(`${civ.name} · 科技加点`, '');
+    render();
+  }
+
   function investProvince(p) {
     const civ = state.civs.get(state.playerCivId);
-    if (civ.gold < 260 || civ.mp < 0.5) { showToast('需要 260 金幣與 0.5 行動點'); return; }
-    civ.gold -= 260;
-    civ.mp = Math.max(0, +(civ.mp - 0.5).toFixed(1));
-    const gain = Math.round(110 + p.econ * 0.08);
-    p.econ += gain;
-    Sound.coin();
-    spawnFloatText(p.cx, p.cy, `經濟 +${gain}`, '#fbbf24');
+    if (civ.gold < 260 || civ.mp < 0.5) return showToast('需要 260 金币与 0.5 行动点');
+    civ.gold -= 260; civ.mp = Math.max(0, +(civ.mp - 0.5).toFixed(1));
+    const gain = Math.round(120 + p.econ * 0.08);
+    p.econ += gain; Sound.coin(); spawnFloatText(p.cx, p.cy, `经济 +${gain}`, '#fbbf24');
     updateAllUI();
   }
 
   function assimilateProvince(p) {
     const civ = state.civs.get(state.playerCivId);
-    if (civ.gold < 200 || civ.dp < 0.5) { showToast('需要 200 金幣與 0.5 外交點'); return; }
-    civ.gold -= 200;
-    civ.dp = Math.max(0, +(civ.dp - 0.5).toFixed(1));
+    if (civ.gold < 200 || civ.dp < 0.5) return showToast('需要 200 金币与 0.5 外交点');
+    civ.gold -= 200; civ.dp = Math.max(0, +(civ.dp - 0.5).toFixed(1));
     p.stability = Math.min(100, p.stability + 28);
     if (p.stability >= 90) p.coreOwner = state.playerCivId;
-    Sound.peace();
-    spawnFloatText(p.cx, p.cy, `穩定度 ${Math.round(p.stability)}%`, '#4ade80');
+    Sound.peace(); spawnFloatText(p.cx, p.cy, `稳定度 ${Math.round(p.stability)}%`, '#4ade80');
     updateAllUI();
   }
 
   function disbandArmy(p) {
     const amt = Math.ceil(p.army * 0.5);
-    p.army -= amt;
-    p.pop += Math.round(amt * 0.6);
-    Sound.click();
-    showToast(`已在 ${p.name} 解散 ${amt.toLocaleString()} 名士兵以節省軍費`);
+    p.army -= amt; p.pop += Math.round(amt * 0.6);
+    Sound.click(); showToast(`已裁撤 ${amt.toLocaleString()} 名士兵`);
     updateAllUI();
   }
 
-  // ======================== BUDGET / POLICY MODAL ========================
   function openBudgetModal() {
     const civ = state.civs.get(state.playerCivId);
-    const renderBody = () => {
+    const render = () => {
       const st = getCivStats(civ.id);
       document.getElementById('modal-body').innerHTML = `
         <div class="slider-group">
-          <div class="slider-row"><span>稅收稅率（過高會降低穩定度）</span><strong class="gold-txt">${civ.taxRate}%</strong></div>
+          <div class="slider-row"><span>税率（过高将引发叛乱）</span><strong class="gold-txt">${civ.taxRate}%</strong></div>
           <input type="range" id="pol-tax" min="5" max="28" value="${civ.taxRate}">
         </div>
         <div class="slider-group">
-          <div class="slider-row"><span>民生商品投資（促進人口與經濟增長）</span><strong class="pos">${civ.goodsRate}%</strong></div>
+          <div class="slider-row"><span>商品民生投资（加速人口与经济）</span><strong class="pos">${civ.goodsRate}%</strong></div>
           <input type="range" id="pol-goods" min="0" max="25" value="${civ.goodsRate}">
         </div>
         <div class="slider-group">
-          <div class="slider-row"><span>科研預算（加速科技等級提升）</span><strong style="color:var(--blue)">${civ.researchRate}%</strong></div>
+          <div class="slider-row"><span>科研投入（加快科技点产出）</span><strong style="color:var(--blue)">${civ.researchRate}%</strong></div>
           <input type="range" id="pol-res" min="0" max="30" value="${civ.researchRate}">
         </div>
         <table class="list-table">
-          <tr><td>稅收與貿易總收入</td><td class="pos" style="text-align:right;">+${st.gross.toLocaleString()}</td></tr>
-          <tr><td>軍隊維護費 (${st.army.toLocaleString()} 兵)</td><td class="neg" style="text-align:right;">-${st.upkeep.toLocaleString()}</td></tr>
-          <tr><td>商品投資支出</td><td class="neg" style="text-align:right;">-${st.goodsCost.toLocaleString()}</td></tr>
-          <tr><td>科研預算支出</td><td class="neg" style="text-align:right;">-${st.researchCost.toLocaleString()}</td></tr>
-          ${st.vassalTax !== 0 ? `<tr><td>附庸貢金</td><td class="${st.vassalTax >= 0 ? 'pos' : 'neg'}" style="text-align:right;">${st.vassalTax >= 0 ? '+' : ''}${st.vassalTax}</td></tr>` : ''}
-          <tr><th>每回合預估淨收支</th><th class="${st.net >= 0 ? 'pos' : 'neg'}" style="text-align:right;">${st.net >= 0 ? '+' : ''}${st.net.toLocaleString()}</th></tr>
+          <tr><td>税收与港口贸易</td><td class="pos" style="text-align:right;">+${st.gross.toLocaleString()}</td></tr>
+          <tr><td>军费维护 (${st.army.toLocaleString()} 兵)</td><td class="neg" style="text-align:right;">-${st.upkeep.toLocaleString()}</td></tr>
+          <tr><td>民生商品支出</td><td class="neg" style="text-align:right;">-${st.goodsCost.toLocaleString()}</td></tr>
+          <tr><td>科研经费支出</td><td class="neg" style="text-align:right;">-${st.researchCost.toLocaleString()}</td></tr>
+          <tr><th>每回合预计净收支</th><th class="${st.net >= 0 ? 'pos' : 'neg'}" style="text-align:right;">${st.net >= 0 ? '+' : ''}${st.net.toLocaleString()}</th></tr>
         </table>
       `;
-      document.getElementById('pol-tax').oninput = e => { civ.taxRate = Number(e.target.value); updateAllUI(); renderBody(); };
-      document.getElementById('pol-goods').oninput = e => { civ.goodsRate = Number(e.target.value); updateAllUI(); renderBody(); };
-      document.getElementById('pol-res').oninput = e => { civ.researchRate = Number(e.target.value); updateAllUI(); renderBody(); };
+      document.getElementById('pol-tax').oninput = e => { civ.taxRate = Number(e.target.value); updateAllUI(); render(); };
+      document.getElementById('pol-goods').oninput = e => { civ.goodsRate = Number(e.target.value); updateAllUI(); render(); };
+      document.getElementById('pol-res').oninput = e => { civ.researchRate = Number(e.target.value); updateAllUI(); render(); };
     };
-    openModal(`${civ.name} · 財政與政策`, '');
-    renderBody();
+    openModal(`${civ.name} · 财政与政策`, '');
+    render();
   }
 
-  // ======================== DIPLOMACY & PEACE CONFERENCE ========================
   function openDiplomacyModal(targetCivId) {
     const me = state.civs.get(state.playerCivId);
     const other = state.civs.get(targetCivId);
     if (!other || !other.alive) return;
     const rel = getRel(me.id, other.id);
-    const mySt = getCivStats(me.id);
-    const otSt = getCivStats(other.id);
-    const statusText = rel.war ? '⚔ 交戰中' : (rel.alliance ? '🤝 軍事同盟' : (rel.nap ? '🕊 互不侵犯' : '中立'));
+    const mySt = getCivStats(me.id), otSt = getCivStats(other.id);
+    const statusText = rel.war ? '⚔ 交战中' : (rel.alliance ? '🤝 军事同盟' : (rel.nap ? '🕊 互不侵犯' : '中立'));
 
     openModal(`外交 · ${other.name}`, `
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
         <div class="flag-lg">${flagSVG(other.flag)}</div>
         <div>
           <div style="font-size:15px;font-weight:800;">${other.name} <span style="font-size:11px;color:var(--gold);">(${other.gov})</span></div>
-          <div style="font-size:12px;color:var(--text-muted);">
-            狀態：<strong>${statusText}</strong> · 雙邊關係：<strong class="${rel.score >= 0 ? 'pos' : 'neg'}">${rel.score}</strong>
-          </div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-            領土 ${otSt.provCount} 省 · 兵力 ${otSt.army.toLocaleString()} · 科技 ${other.tech.toFixed(2)}
-          </div>
+          <div style="font-size:12px;color:var(--text-muted);">状态：<strong>${statusText}</strong> · 关系：<strong class="${rel.score >= 0 ? 'pos' : 'neg'}">${rel.score}</strong></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">领土 ${otSt.provCount} 地区 · 兵力 ${otSt.army.toLocaleString()} · 科技 ${other.tech.toFixed(2)}</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button class="btn" id="dip-imp">🤝 改善關係 (0.5外交點)</button>
-        <button class="btn" id="dip-ins">💢 外交侮辱 (0.4外交點)</button>
-        <button class="btn btn-success" id="dip-trade" ${rel.war || rel.trade ? 'disabled' : ''}>💰 貿易協定 (需關係≥10)</button>
-        <button class="btn btn-success" id="dip-nap" ${rel.war || rel.nap ? 'disabled' : ''}>🕊 互不侵犯條約 (需關係≥15)</button>
-        <button class="btn btn-gold" id="dip-ally" ${rel.war || rel.alliance ? 'disabled' : ''}>⭐ 締結同盟 (需關係≥40)</button>
-        <button class="btn" id="dip-ult" ${rel.war ? 'disabled' : ''}>📜 最後通牒：要求附庸</button>
+        <button class="btn" id="dip-imp">🤝 改善关系 (0.5外交)</button>
+        <button class="btn" id="dip-ins">💢 外交侮辱 (0.4外交)</button>
+        <button class="btn btn-success" id="dip-trade" ${rel.war || rel.trade ? 'disabled' : ''}>💰 贸易协定 (关系≥10)</button>
+        <button class="btn btn-success" id="dip-nap" ${rel.war || rel.nap ? 'disabled' : ''}>🕊 互不侵犯 (关系≥15)</button>
+        <button class="btn btn-gold" id="dip-ally" ${rel.war || rel.alliance ? 'disabled' : ''}>⭐ 缔结同盟 (关系≥40)</button>
+        <button class="btn" id="dip-ult" ${rel.war ? 'disabled' : ''}>📜 最后通牒：要求附庸</button>
         ${rel.war
-          ? `<button class="btn btn-gold" style="grid-column:span 2;" id="dip-peace">🕊 開啟和平條約談判（戰分 ${getWarScore(me.id, other.id)}）</button>`
-          : `<button class="btn btn-danger" style="grid-column:span 2;" id="dip-war">⚔ 正式宣戰</button>`
+          ? `<button class="btn btn-gold" style="grid-column:span 2;" id="dip-peace">🕊 和平条约谈判（战分 ${getWarScore(me.id, other.id)}）</button>`
+          : `<button class="btn btn-danger" style="grid-column:span 2;" id="dip-war">⚔ 正式宣战</button>`
         }
       </div>
     `);
 
     document.getElementById('dip-imp').onclick = () => {
-      if (me.dp < 0.5) return showToast('外交點不足');
-      me.dp = +(me.dp - 0.5).toFixed(1);
-      rel.score = Math.min(100, rel.score + 18);
+      if (me.dp < 0.5) return showToast('外交点不足');
+      me.dp = +(me.dp - 0.5).toFixed(1); rel.score = Math.min(100, rel.score + 18);
       Sound.click(); updateAllUI(); openDiplomacyModal(targetCivId);
     };
     document.getElementById('dip-ins').onclick = () => {
-      if (me.dp < 0.4) return showToast('外交點不足');
-      me.dp = +(me.dp - 0.4).toFixed(1);
-      rel.score = Math.max(-100, rel.score - 25);
+      if (me.dp < 0.4) return showToast('外交点不足');
+      me.dp = +(me.dp - 0.4).toFixed(1); rel.score = Math.max(-100, rel.score - 25);
       Sound.click(); updateAllUI(); openDiplomacyModal(targetCivId);
     };
     document.getElementById('dip-trade').onclick = () => {
-      if (rel.score < 10) return showToast('關係需達到 10 以上');
+      if (rel.score < 10) return showToast('关系需达到 10 以上');
       rel.trade = true; rel.score = Math.min(100, rel.score + 8);
-      Sound.coin(); pushNews(`💰 與 ${other.name} 簽署了貿易協定（每回合 +45 金幣）。`, 'peace');
+      Sound.coin(); pushNews(`💰 与 ${other.name} 签署贸易协定（+55 金币/回合）。`, 'peace');
       updateAllUI(); openDiplomacyModal(targetCivId);
     };
     document.getElementById('dip-nap').onclick = () => {
-      if (rel.score < 15) return showToast('關係需達到 15 以上');
-      rel.nap = true; Sound.peace(); pushNews(`🕊️ 與 ${other.name} 簽署了互不侵犯條約。`, 'peace');
+      if (rel.score < 15) return showToast('关系需达到 15 以上');
+      rel.nap = true; Sound.peace(); pushNews(`🕊️ 与 ${other.name} 签署互不侵犯条约。`, 'peace');
       updateAllUI(); openDiplomacyModal(targetCivId);
     };
     document.getElementById('dip-ally').onclick = () => {
-      if (rel.score < 40) return showToast('關係需達到 40 以上才願結盟');
-      rel.alliance = true; Sound.peace(); pushNews(`⭐ 你與 ${other.name} 締結了軍事同盟！`, 'peace');
+      if (rel.score < 40) return showToast('关系需达到 40 以上');
+      rel.alliance = true; Sound.peace(); pushNews(`⭐ 与 ${other.name} 缔结军事同盟！`, 'peace');
       updateAllUI(); openDiplomacyModal(targetCivId);
     };
     document.getElementById('dip-ult').onclick = () => {
       if (mySt.army > otSt.army * 2.2) {
-        other.vassalOf = me.id;
-        rel.alliance = true;
-        Sound.peace();
-        pushNews(`📜 迫於強大軍威，${other.name} 接受最後通牒成為你的附庸國！`, 'peace');
+        other.vassalOf = me.id; rel.alliance = true; Sound.peace();
+        pushNews(`📜 ${other.name} 屈服于军威，成为你的附庸国！`, 'peace');
         closeModal(); updateAllUI();
       } else {
-        showToast(`${other.name} 拒絕了你的最後通牒（我方兵力需超過對方 2.2 倍）`);
+        showToast(`${other.name} 拒绝了最后通牒（我方兵力需超对方 2.2 倍）`);
         rel.score = Math.max(-100, rel.score - 20);
         openDiplomacyModal(targetCivId);
       }
     };
-    const warBtn = document.getElementById('dip-war');
-    if (warBtn) {
-      warBtn.onclick = () => {
-        if (rel.truceUntil > state.turn) return showToast(`停戰協議中，剩餘 ${rel.truceUntil - state.turn} 回合`);
-        declareWar(me.id, other.id, false);
-        closeModal(); updateAllUI();
-      };
-    }
-    const peaceBtn = document.getElementById('dip-peace');
-    if (peaceBtn) peaceBtn.onclick = () => openPeaceModal(targetCivId);
+    const wBtn = document.getElementById('dip-war');
+    if (wBtn) wBtn.onclick = () => {
+      if (rel.truceUntil > state.turn) return showToast(`停战中，剩余 ${rel.truceUntil - state.turn} 回合`);
+      declareWar(me.id, other.id, false); closeModal(); updateAllUI();
+    };
+    const pBtn = document.getElementById('dip-peace');
+    if (pBtn) pBtn.onclick = () => openPeaceModal(targetCivId);
   }
 
-  function openPeaceModal(enemyCivId) {
+  function openPeaceModal(enemyId) {
     const me = state.civs.get(state.playerCivId);
-    const enemy = state.civs.get(enemyCivId);
+    const enemy = state.civs.get(enemyId);
     const ws = getWarScore(me.id, enemy.id);
     const stars = Math.max(0, Math.round(ws + 15));
-    const enemyProvs = state.provinces.filter(p => p.owner === enemyCivId);
+    const enemyProvs = state.provinces.filter(p => p.owner === enemyId);
     const chosen = new Set();
-    let demandReparations = false;
+    let demandRep = false;
 
-    function calcUsed() {
-      let u = chosen.size * 14;
-      if (demandReparations) u += 10;
-      return u;
-    }
-
-    function renderPeace() {
-      const used = calcUsed();
+    const render = () => {
+      const used = chosen.size * 14 + (demandRep ? 10 : 0);
       const canSign = ws >= -15 && used <= stars;
       document.getElementById('modal-body').innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span>可用戰爭分數星數：<strong class="gold-txt">★ ${stars}</strong></span>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span>可用战分星数：<strong class="gold-txt">★ ${stars}</strong></span>
           <span>已消耗：<strong class="${used > stars ? 'neg' : 'pos'}">★ ${used}</strong></span>
         </div>
-        <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px;">勾選要求 ${enemy.name} 割讓的省份（每省消耗 ★14），或直接簽訂無條件停戰。</p>
         <div class="peace-prov-list">
           ${enemyProvs.map(p => `
             <div class="peace-item ${chosen.has(p.id) ? 'selected' : ''}" data-pid="${p.id}">
@@ -2670,88 +2351,75 @@
           `).join('')}
         </div>
         <label style="display:flex;align-items:center;gap:8px;margin:10px 0;cursor:pointer;font-size:12px;">
-          <input type="checkbox" id="peace-rep" ${demandReparations ? 'checked' : ''}>
-          要求戰爭賠款 (+450 金幣，消耗 ★10)
+          <input type="checkbox" id="peace-rep" ${demandRep ? 'checked' : ''}> 要求战争赔款 (+500 金币，消耗 ★10)
         </label>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-          <button class="btn" id="peace-cancel">返回</button>
-          <button class="btn btn-gold" id="peace-sign" ${canSign ? '' : 'disabled'}>簽署和平條約</button>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn" id="peace-no">返回</button>
+          <button class="btn btn-gold" id="peace-ok" ${canSign ? '' : 'disabled'}>签署和平条约</button>
         </div>
       `;
       document.querySelectorAll('.peace-item').forEach(el => {
         el.onclick = () => {
           const pid = Number(el.dataset.pid);
           if (chosen.has(pid)) chosen.delete(pid); else chosen.add(pid);
-          renderPeace();
+          render();
         };
       });
-      document.getElementById('peace-rep').onchange = e => { demandReparations = e.target.checked; renderPeace(); };
-      document.getElementById('peace-cancel').onclick = closeModal;
-      document.getElementById('peace-sign').onclick = () => {
+      document.getElementById('peace-rep').onchange = e => { demandRep = e.target.checked; render(); };
+      document.getElementById('peace-no').onclick = closeModal;
+      document.getElementById('peace-ok').onclick = () => {
         const rel = getRel(me.id, enemy.id);
         for (const pid of chosen) {
           const pr = state.provinces[pid];
-          pr.owner = me.id;
-          pr.isCapital = false;
-          pr.army = Math.min(pr.army, 100);
-          pr.stability = 55;
+          pr.owner = me.id; pr.isCapital = false; pr.army = Math.min(pr.army, 100); pr.stability = 55;
         }
-        if (demandReparations) {
-          me.gold += 450;
-          enemy.gold = Math.max(0, enemy.gold - 450);
-        }
-        rel.war = false;
-        rel.truceUntil = state.turn + 10;
-        rel.warScoreA = 0;
+        if (demandRep) { me.gold += 500; enemy.gold = Math.max(0, enemy.gold - 500); }
+        rel.war = false; rel.truceUntil = state.turn + 10; rel.warScoreA = 0;
         Sound.peace();
-        pushNews(`🕊️ 與 ${enemy.name} 簽署和平條約！獲得 ${chosen.size} 個省份${demandReparations ? '與賠款' : ''}。`, 'peace');
-        closeModal();
-        updateAllUI();
+        pushNews(`🕊️ 与 ${enemy.name} 签署和平条约，割得 ${chosen.size} 个地区。`, 'peace');
+        closeModal(); updateAllUI();
       };
-    }
-    openModal(`和平談判 · ${enemy.name}`, '');
-    renderPeace();
+    };
+    openModal(`和平谈判 · ${enemy.name}`, '');
+    render();
   }
 
   function openWorldDiploList() {
-    const rows = Array.from(state.civs.values()).filter(c => c.id !== state.playerCivId && c.alive);
-    openModal('世界外交總覽', `
+    const ranks = getRankings().filter(r => r.civ.id !== state.playerCivId).slice(0, 35);
+    openModal('主要国家外交（按实力排序）', `
       <table class="list-table">
-        <thead><tr><th>文明</th><th>狀態</th><th>關係</th><th>兵力</th><th>操作</th></tr></thead>
+        <thead><tr><th>文明</th><th>状态</th><th>关系</th><th>兵力</th><th>操作</th></tr></thead>
         <tbody>
-          ${rows.map(c => {
+          ${ranks.map(({ civ: c, stats: st }) => {
             const rel = getRel(state.playerCivId, c.id);
-            const st = getCivStats(c.id);
-            const tag = rel.war ? '<span class="neg">交戰</span>' : (rel.alliance ? '<span style="color:var(--blue)">同盟</span>' : '和平');
+            const tag = rel.war ? '<span class="neg">交战</span>' : (rel.alliance ? '<span style="color:var(--blue)">同盟</span>' : '和平');
             return `<tr>
-              <td style="display:flex;align-items:center;gap:6px;"><span class="flag-mini" style="width:20px;height:14px;">${flagSVG(c.flag)}</span>${c.name}</td>
+              <td style="display:flex;align-items:center;gap:6px;"><span class="flag-mini" style="width:20px;height:13px;">${flagSVG(c.flag)}</span>${c.name}</td>
               <td>${tag}</td>
               <td class="${rel.score >= 0 ? 'pos' : 'neg'}">${rel.score}</td>
               <td>${st.army.toLocaleString()}</td>
-              <td><button class="btn btn-sm open-dip-btn" data-cid="${c.id}">交涉</button></td>
+              <td><button class="btn btn-sm open-dip" data-cid="${c.id}">交涉</button></td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     `);
-    document.querySelectorAll('.open-dip-btn').forEach(b => {
-      b.onclick = () => openDiplomacyModal(Number(b.dataset.cid));
-    });
+    document.querySelectorAll('.open-dip').forEach(b => { b.onclick = () => openDiplomacyModal(b.dataset.cid); });
   }
 
   function openRankingModal() {
-    const ranks = getRankings();
-    openModal('世界列強排行榜', `
+    const ranks = getRankings().slice(0, 30);
+    openModal('全球列强排行榜（前 30 名）', `
       <table class="list-table">
-        <thead><tr><th>#</th><th>文明</th><th>省份</th><th>總人口</th><th>總兵力</th><th>綜合分數</th></tr></thead>
+        <thead><tr><th>#</th><th>文明</th><th>地区</th><th>总兵力</th><th>科技</th><th>综合分</th></tr></thead>
         <tbody>
           ${ranks.map((r, i) => `
-            <tr style="${r.civ.id === state.playerCivId ? 'background:rgba(229,185,92,0.14);' : ''}">
+            <tr style="${r.civ.id === state.playerCivId ? 'background:rgba(230,188,101,0.16);' : ''}">
               <td><strong>${i + 1}</strong></td>
-              <td style="display:flex;align-items:center;gap:6px;"><span class="flag-mini" style="width:20px;height:14px;">${flagSVG(r.civ.flag)}</span>${r.civ.name}</td>
+              <td style="display:flex;align-items:center;gap:6px;"><span class="flag-mini" style="width:20px;height:13px;">${flagSVG(r.civ.flag)}</span>${r.civ.name}</td>
               <td>${r.stats.provCount}</td>
-              <td>${(r.stats.pop / 1000).toFixed(1)}k</td>
               <td>${r.stats.army.toLocaleString()}</td>
+              <td style="color:var(--blue)">${r.civ.tech.toFixed(2)}</td>
               <td class="gold-txt"><strong>${r.score}</strong></td>
             </tr>
           `).join('')}
@@ -2760,138 +2428,167 @@
     `);
   }
 
-  // ======================== TIMELAPSE REPLAY ========================
+  // ======================== TIMELAPSE, EDITOR & SAVE/LOAD ========================
   function startTimelapse() {
-    if (state.history.length < 2) {
-      showToast('至少進行 2 個回合後才能觀看歷史疆域回放');
-      return;
-    }
+    if (state.history.length < 2) return showToast('至少推进 2 个回合后可观看历史回放');
     exitSpecialMode();
     state.mode = 'timelapse';
     state.timelapseIndex = 0;
     document.getElementById('province-panel').classList.add('hidden');
     document.getElementById('mode-banner').classList.remove('hidden');
-
     const step = () => {
-      const snap = state.history[state.timelapseIndex];
-      document.getElementById('mode-banner-text').textContent = `📽 歷史延時回放：${snap.year}年 ${snap.month}月（第 ${state.timelapseIndex + 1} / ${state.history.length} 回合）`;
-      state.timelapseIndex++;
-      if (state.timelapseIndex >= state.history.length) {
-        state.timelapseIndex = 0;
-      }
+      const s = state.history[state.timelapseIndex];
+      document.getElementById('mode-banner-text').textContent = `📽 历史疆域回放：${s.year}年 ${s.month}月（第 ${state.timelapseIndex + 1}/${state.history.length} 回合）`;
+      state.timelapseIndex = (state.timelapseIndex + 1) % state.history.length;
     };
     step();
-    state.timelapseTimer = setInterval(step, 450);
+    state.timelapseTimer = setInterval(step, 420);
   }
 
-  // ======================== SCENARIO EDITOR ========================
   function openEditorMode() {
     document.getElementById('title-screen').classList.add('hidden');
     initScenario(SCENARIOS[state.selectedScenarioIdx], state.selectedStartCivId, false);
     state.mode = 'editor';
-    state.editorPaintCivId = state.selectedStartCivId;
+    state.editorPaintCivId = state.playerCivId;
     document.getElementById('province-panel').classList.add('hidden');
     document.getElementById('editor-panel').classList.remove('hidden');
-    renderEditorCivList();
+    renderEditorList();
   }
 
-  function renderEditorCivList() {
+  function renderEditorList() {
     const wrap = document.getElementById('editor-civ-list');
     wrap.innerHTML = '';
-    for (const c of state.civs.values()) {
+    const featured = state.scenario.featuredIds.filter(id => state.civs.has(id));
+    for (const cid of featured) {
+      const c = state.civs.get(cid);
       const el = document.createElement('div');
-      el.className = 'civ-opt' + (c.id === state.editorPaintCivId ? ' active' : '');
+      el.className = 'civ-opt' + (cid === state.editorPaintCivId ? ' active' : '');
       el.innerHTML = `<div class="flag-mini">${flagSVG(c.flag)}</div><div class="civ-opt-name">${c.name}</div>`;
-      el.onclick = () => { state.editorPaintCivId = c.id; renderEditorCivList(); };
+      el.onclick = () => { state.editorPaintCivId = cid; renderEditorList(); };
       wrap.appendChild(el);
     }
   }
 
-  // ======================== MODAL, NEWS & TOAST HELPERS ========================
+  const SAVE_KEY = 'aoh2_realworld_save_v1';
+  function saveGame() {
+    try {
+      const data = {
+        scenarioId: state.scenario.id,
+        playerCivId: state.playerCivId,
+        turn: state.turn,
+        year: state.year,
+        month: state.month,
+        provinces: state.provinces.map(p => ({
+          owner: p.owner, coreOwner: p.coreOwner, isCapital: p.isCapital,
+          army: p.army, pop: p.pop, econ: p.econ, stability: p.stability, buildings: p.buildings
+        })),
+        civs: Array.from(state.civs.values()),
+        relations: Array.from(state.relations.entries())
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      Sound.coin();
+      showToast('游戏进度已保存到本地！');
+    } catch (e) {
+      showToast('当前环境无法写入本地存档');
+    }
+  }
+
+  function hasSave() {
+    try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; }
+  }
+
+  function loadGame() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      const sc = SCENARIOS.find(s => s.id === d.scenarioId) || SCENARIOS[0];
+      initScenario(sc, d.playerCivId, false);
+      state.turn = d.turn; state.year = d.year; state.month = d.month;
+      state.playerCivId = d.playerCivId;
+      d.provinces.forEach((sp, i) => {
+        if (state.provinces[i]) Object.assign(state.provinces[i], sp);
+      });
+      state.civs.clear();
+      d.civs.forEach(c => state.civs.set(c.id, c));
+      state.relations = new Map(d.relations);
+      document.getElementById('title-screen').classList.add('hidden');
+      centerCameraOnCiv(state.playerCivId);
+      updateAllUI();
+      showToast(`已载入存档：${state.year}年 ${state.month}月`);
+    } catch (e) {
+      showToast('读取存档失败');
+    }
+  }
+
+  // ======================== HELPERS ========================
   function openModal(title, html) {
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-body').innerHTML = html;
     document.getElementById('modal-backdrop').classList.remove('hidden');
   }
-  function closeModal() {
-    document.getElementById('modal-backdrop').classList.add('hidden');
-  }
+  function closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); }
 
   let toastTimer = null;
   function showToast(msg) {
     const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.remove('hidden');
+    el.textContent = msg; el.classList.remove('hidden');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.add('hidden'), 2400);
   }
-
-  function clearNews() {
-    document.getElementById('news-feed').innerHTML = '';
-  }
+  function clearNews() { document.getElementById('news-feed').innerHTML = ''; }
   function pushNews(msg, kind = '') {
     const feed = document.getElementById('news-feed');
     const div = document.createElement('div');
-    div.className = `news-item ${kind}`;
-    div.textContent = msg;
+    div.className = `news-item ${kind}`; div.textContent = msg;
     feed.prepend(div);
     while (feed.children.length > 4) feed.lastChild.remove();
   }
 
   function exitSpecialMode() {
-    if (state.timelapseTimer) {
-      clearInterval(state.timelapseTimer);
-      state.timelapseTimer = null;
-    }
-    state.mode = 'normal';
-    state.moveSourceId = null;
+    if (state.timelapseTimer) { clearInterval(state.timelapseTimer); state.timelapseTimer = null; }
+    state.mode = 'normal'; state.moveSourceId = null;
     canvas.classList.remove('crosshair');
     document.getElementById('mode-banner').classList.add('hidden');
     document.getElementById('editor-panel').classList.add('hidden');
     updateProvincePanel();
   }
 
-  // ======================== TITLE SCREEN ========================
   function renderTitleScreen() {
     const scList = document.getElementById('scenario-list');
     scList.innerHTML = '';
     SCENARIOS.forEach((sc, idx) => {
       const card = document.createElement('div');
       card.className = 'scenario-card' + (idx === state.selectedScenarioIdx ? ' active' : '');
-      card.innerHTML = `
-        <div class="sc-year">${sc.year} 年 · ${sc.civs.length} 個文明</div>
-        <div class="sc-name">${sc.name}</div>
-        <div class="sc-desc">${sc.desc}</div>
-      `;
+      card.innerHTML = `<div class="sc-year">${sc.year} 年</div><div class="sc-name">${sc.name}</div><div class="sc-desc">${sc.desc}</div>`;
       card.onclick = () => {
         state.selectedScenarioIdx = idx;
-        state.selectedStartCivId = sc.civs[0].id;
-        Sound.click();
-        renderTitleScreen();
+        state.selectedStartCivId = sc.featuredIds[0];
+        Sound.click(); renderTitleScreen();
       };
       scList.appendChild(card);
     });
 
+    const sc = SCENARIOS[state.selectedScenarioIdx];
     const picker = document.getElementById('civ-picker');
     picker.innerHTML = '';
-    const sc = SCENARIOS[state.selectedScenarioIdx];
-    sc.civs.forEach(c => {
+    for (const cid of sc.featuredIds) {
+      const emp = (sc.empires && sc.empires[cid]) || MAJOR_MODERN_CIVS[cid];
+      if (!emp) continue;
       const opt = document.createElement('div');
-      opt.className = 'civ-opt' + (c.id === state.selectedStartCivId ? ' active' : '');
+      opt.className = 'civ-opt' + (cid === state.selectedStartCivId ? ' active' : '');
       opt.innerHTML = `
-        <div class="flag-mini">${flagSVG(c.flag)}</div>
+        <div class="flag-mini">${flagSVG(emp.flag)}</div>
         <div class="civ-opt-info">
-          <div class="civ-opt-name">${c.name}</div>
-          <div class="civ-opt-meta">${c.gov} · 科技 ${c.tech}</div>
+          <div class="civ-opt-name">${emp.name}</div>
+          <div class="civ-opt-meta">${emp.gov} · 科技 ${emp.tech}</div>
         </div>
       `;
-      opt.onclick = () => {
-        state.selectedStartCivId = c.id;
-        Sound.click();
-        renderTitleScreen();
-      };
+      opt.onclick = () => { state.selectedStartCivId = cid; Sound.click(); renderTitleScreen(); };
       picker.appendChild(opt);
-    });
+    }
+
+    document.getElementById('btn-load-save').style.display = hasSave() ? 'inline-flex' : 'none';
   }
 
   function showTitleScreen() {
@@ -2900,55 +2597,68 @@
     document.getElementById('title-screen').classList.remove('hidden');
   }
 
-  // ======================== POINTER & CAMERA INTERACTION ========================
-  let dragging = false;
-  let movedDist = 0;
-  let lastX = 0, lastY = 0;
+  // ======================== POINTER + MULTI-TOUCH PINCH ZOOM ========================
+  const activePointers = new Map();
+  let movedDist = 0, lastPinchDist = 0;
 
   canvas.addEventListener('pointerdown', e => {
-    dragging = true;
-    movedDist = 0;
-    lastX = e.clientX;
-    lastY = e.clientY;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.size === 1) movedDist = 0;
+    if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      lastPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    }
     canvas.setPointerCapture(e.pointerId);
   });
 
   canvas.addEventListener('pointermove', e => {
     const rect = canvas.getBoundingClientRect();
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
+    if (activePointers.has(e.pointerId)) {
+      const prev = activePointers.get(e.pointerId);
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    if (dragging) {
-      const dx = e.clientX - lastX;
-      const dy = e.clientY - lastY;
-      movedDist += Math.hypot(dx, dy);
-      state.cam.x -= dx / state.cam.zoom;
-      state.cam.y -= dy / state.cam.zoom;
-      state.cam.x = Math.max(0, Math.min(MAP_W, state.cam.x));
-      state.cam.y = Math.max(0, Math.min(MAP_H, state.cam.y));
-      lastX = e.clientX;
-      lastY = e.clientY;
+      if (activePointers.size === 1) {
+        movedDist += Math.hypot(dx, dy);
+        state.cam.x = Math.max(0, Math.min(WORLD_W, state.cam.x - dx / state.cam.zoom));
+        state.cam.y = Math.max(0, Math.min(WORLD_H, state.cam.y - dy / state.cam.zoom));
+      } else if (activePointers.size === 2) {
+        const pts = Array.from(activePointers.values());
+        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        if (lastPinchDist > 0) {
+          state.cam.zoom = Math.max(0.42, Math.min(6.0, state.cam.zoom * (dist / lastPinchDist)));
+        }
+        lastPinchDist = dist;
+        movedDist += 20;
+      }
       return;
     }
-    const w = screenToWorld(sx, sy);
+    const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
     state.hoveredProvId = findProvinceAt(w.x, w.y);
   });
 
   canvas.addEventListener('pointerup', e => {
-    if (!dragging) return;
-    dragging = false;
-    if (movedDist < 7) {
+    const wasSingle = activePointers.size === 1;
+    activePointers.delete(e.pointerId);
+    if (wasSingle && movedDist < 8) {
       const rect = canvas.getBoundingClientRect();
       const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-      const pid = findProvinceAt(w.x, w.y);
-      handleProvinceClick(pid);
+      handleProvinceClick(findProvinceAt(w.x, w.y));
     }
   });
+  canvas.addEventListener('pointercancel', e => activePointers.delete(e.pointerId));
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.12 : 0.89;
-    state.cam.zoom = Math.max(0.38, Math.min(2.2, state.cam.zoom * factor));
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const before = screenToWorld(mx, my);
+    const factor = e.deltaY < 0 ? 1.15 : 0.87;
+    state.cam.zoom = Math.max(0.42, Math.min(6.0, state.cam.zoom * factor));
+    const after = screenToWorld(mx, my);
+    state.cam.x += before.x - after.x;
+    state.cam.y += before.y - after.y;
   }, { passive: false });
 
   function handleProvinceClick(pid) {
@@ -2958,23 +2668,16 @@
       else { state.selectedProvId = null; updateProvincePanel(); }
       return;
     }
-
     if (state.mode === 'editor') {
       state.provinces[pid].owner = state.editorPaintCivId;
-      Sound.click();
-      return;
+      Sound.click(); return;
     }
-
     if (state.mode === 'move' && state.moveSourceId !== null) {
       const fromP = state.provinces[state.moveSourceId];
-      if (fromP.neighbors.has(pid)) {
-        openMoveConfirmModal(fromP, state.provinces[pid]);
-      } else {
-        showToast('只能行軍至相鄰或有海路相連的省份');
-      }
+      if (fromP.neighbors.has(pid)) openMoveConfirmModal(fromP, state.provinces[pid]);
+      else showToast('只能向陆地接壤或海运虚线相连的地区行军');
       return;
     }
-
     Sound.click();
     state.selectedProvId = pid;
     updateProvincePanel();
@@ -2986,65 +2689,51 @@
     document.getElementById('title-screen').classList.add('hidden');
     initScenario(SCENARIOS[state.selectedScenarioIdx], state.selectedStartCivId, false);
   };
-  document.getElementById('btn-open-editor').onclick = () => {
-    Sound.click();
-    openEditorMode();
-  };
+  document.getElementById('btn-load-save').onclick = loadGame;
+  document.getElementById('btn-open-editor').onclick = () => { Sound.click(); openEditorMode(); };
   document.getElementById('btn-editor-play').onclick = () => {
     Sound.turn();
     document.getElementById('editor-panel').classList.add('hidden');
     initScenario(SCENARIOS[state.selectedScenarioIdx], state.editorPaintCivId, true);
   };
-  document.getElementById('btn-editor-exit').onclick = () => {
-    Sound.click();
-    showTitleScreen();
-  };
+  document.getElementById('btn-editor-exit').onclick = () => { Sound.click(); showTitleScreen(); };
 
   document.getElementById('btn-next-turn').onclick = nextTurn;
   document.getElementById('btn-undo-orders').onclick = () => {
     const civ = state.civs.get(state.playerCivId);
-    let refunded = 0;
+    let n = 0;
     state.pendingOrders = state.pendingOrders.filter(o => {
       if (o.civId === state.playerCivId) {
         state.provinces[o.from].army += o.amount;
         civ.mp = Math.min(civ.maxMp, +(civ.mp + 0.6).toFixed(1));
-        refunded++;
-        return false;
+        n++; return false;
       }
       return true;
     });
-    if (refunded > 0) {
-      Sound.click();
-      showToast(`已撤銷 ${refunded} 條行軍命令並返還兵力與行動點`);
-      updateAllUI();
-    }
+    if (n > 0) { Sound.click(); showToast(`已撤销 ${n} 条行军命令`); updateAllUI(); }
   };
 
   document.getElementById('btn-budget').onclick = () => { Sound.click(); openBudgetModal(); };
   document.getElementById('hud-flag').onclick = () => { Sound.click(); openBudgetModal(); };
+  document.getElementById('btn-tech').onclick = () => { Sound.click(); openTechModal(); };
   document.getElementById('btn-diplo-list').onclick = () => { Sound.click(); openWorldDiploList(); };
   document.getElementById('btn-ranking').onclick = () => { Sound.click(); openRankingModal(); };
   document.getElementById('btn-timelapse').onclick = () => { Sound.click(); startTimelapse(); };
+  document.getElementById('btn-save').onclick = saveGame;
   document.getElementById('btn-cancel-mode').onclick = () => { Sound.click(); exitSpecialMode(); };
   document.getElementById('btn-close-prov').onclick = () => { state.selectedProvId = null; updateProvincePanel(); };
   document.getElementById('btn-close-modal').onclick = closeModal;
-  document.getElementById('modal-backdrop').addEventListener('click', e => {
-    if (e.target.id === 'modal-backdrop') closeModal();
-  });
+  document.getElementById('modal-backdrop').addEventListener('click', e => { if (e.target.id === 'modal-backdrop') closeModal(); });
 
-  document.getElementById('btn-zoom-in').onclick = () => { state.cam.zoom = Math.min(2.2, state.cam.zoom * 1.2); };
-  document.getElementById('btn-zoom-out').onclick = () => { state.cam.zoom = Math.max(0.38, state.cam.zoom * 0.82); };
+  document.getElementById('btn-zoom-in').onclick = () => { state.cam.zoom = Math.min(6.0, state.cam.zoom * 1.25); };
+  document.getElementById('btn-zoom-out').onclick = () => { state.cam.zoom = Math.max(0.42, state.cam.zoom * 0.8); };
   document.getElementById('btn-zoom-reset').onclick = () => centerCameraOnCiv(state.playerCivId);
-  document.getElementById('btn-mute').onclick = e => {
-    const m = Sound.toggle();
-    e.target.textContent = m ? '🔇' : '🔊';
-  };
+  document.getElementById('btn-mute').onclick = e => { e.target.textContent = Sound.toggle() ? '🔇' : '🔊'; };
   document.getElementById('btn-menu').onclick = () => { Sound.click(); showTitleScreen(); };
 
   document.querySelectorAll('#map-modes .mode-btn').forEach(btn => {
     btn.onclick = () => {
-      Sound.click();
-      state.mapMode = btn.dataset.mode;
+      Sound.click(); state.mapMode = btn.dataset.mode;
       document.querySelectorAll('#map-modes .mode-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     };
@@ -3068,11 +2757,17 @@
   window.addEventListener('resize', resizeCanvas);
 
   // ======================== BOOT ========================
-  window.onload = () => {
+  window.onload = async () => {
     resizeCanvas();
-    initScenario(SCENARIOS[0], 1, false);
-    renderTitleScreen();
     requestAnimationFrame(drawMap);
+    try {
+      await loadWorldAtlas();
+      document.getElementById('loading-screen').classList.add('hidden');
+      initScenario(SCENARIOS[0], '156', false);
+      showTitleScreen();
+    } catch (err) {
+      document.getElementById('loading-sub').textContent = err.message || '地图加载失败，请刷新重试';
+    }
   };
 })();
 </script>
